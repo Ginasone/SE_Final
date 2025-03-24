@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         }
 
         return NextResponse.json(
-            { message: "Interna lserver error"},
+            { message: "Internal server error"},
             { status: 500}
         );
     }
