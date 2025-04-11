@@ -4,7 +4,8 @@ import mysql from "mysql2/promise";
 
 export async function POST(request: NextRequest){
     try{
-        const {full_name, email, password, role} = await request.json();
+        const {full_name, email, password, role, admin_code, school_code} = await request.json();
+
         if (!full_name || !email || !password){
             return NextResponse.json(
                 { message:"Missing required fields"},
@@ -47,20 +48,83 @@ export async function POST(request: NextRequest){
             );
         }
 
+        let roleValue =  'student' ;
+        let schoolId = null;
+
+        if (role === 'admin'){
+            if (!admin_code || admin_code !== process.env.ADMIN_REGISTRATION_CODE){
+                await connection.end();
+                return NextResponse.json(
+                    { message: "Invalid admin registration code"},
+                    { status: 403}
+                );
+            }
+            roleValue = 'admin';
+        }
+        else {
+            if (!school_code){
+                await connection.end();
+                return NextResponse.json(
+                    { message: "School code is required for registration"},
+                    { status: 400}
+                );
+            }
+
+            const [schools] = await connection.execute(
+                "SELECT * FROM schools WHERE access_code = ? AND status = 'active'",
+                [school_code]
+            );
+    
+            if (!Array.isArray(schools) || schools.length === 0) {
+                await connection.end();
+                return NextResponse.json(
+                    { message: "Invalid or inactive school code"},
+                    { status: 403}
+                );
+            }
+
+            schoolId = (schools[0] as any).id;
+            roleValue = role === 'teacher' ? 'teacher' : 'student';
+        }
+
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password,salt);
 
-        const roleValue = role === 'teacher' ? '2' : '1';
-
         const [result] = await connection.execute(
-            "INSERT INTO users (full_name, email, password_hash, role, created_at) VALUES (?,?,?,?, NOW())",
-            [full_name, email, hashedPassword, roleValue]
+            "INSERT INTO users (full_name, email, password_hash, role, school_id, created_at) VALUES (?,?,?,?,?, NOW())",
+            [full_name, email, hashedPassword, roleValue, schoolId]
         );
+
+        let schoolInfo = null;
+        if (schoolInfo) {
+            const [schoolResults] = await connection.execute(
+                "SELECT name FROM schools WHERE id = ?",
+                [schoolId]
+            );
+
+            if (Array.isArray(schoolResults) && schoolResults.length > 0){
+                schoolInfo = {
+                    id: schoolId,
+                    name: (schoolResults[0] as any).name 
+                };
+            }
+        }
 
         await connection.end();
 
-        return NextResponse.json(
-            { message: "User registered successfully"},
+        // @ts-ignore
+        const userId = result.insertId;
+
+        return NextResponse.json({
+            message: "User registered successfully",
+            user: {
+                id: userId,
+                full_name,
+                email,
+                role: roleValue,
+                school: schoolInfo
+            }
+        },
             { status: 201}
         );
     }

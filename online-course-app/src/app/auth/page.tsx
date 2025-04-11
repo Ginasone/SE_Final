@@ -13,8 +13,11 @@ const Auth = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        role: 'student'
+        role: 'student',
+        admin_code: '',
+        school_code: ''
     });
+    const [showAdminCode, setShowAdminCode] = useState(false);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -22,6 +25,18 @@ const Auth = () => {
             ...prev,
             [name]: value
         }));
+
+        if (name === 'role' && value === 'admin'){
+            setShowAdminCode(true);
+        }
+        else if (name === 'role' && value !== 'admin'){
+            setShowAdminCode(false);
+            setFormData(prev => ({
+                ...prev,
+                admin_code: ''
+            }));
+        }
+
         if (error) setError('');
     };
 
@@ -51,6 +66,14 @@ const Auth = () => {
                 setError('Passwords do not match');
                 return false;
             }
+            if (formData.role === 'admin' && !formData.admin_code){
+                setError('Admin code is required for admin registration');
+                return false;
+            }
+            if (formData.role !== 'admin' && !formData.school_code){
+                setError('School code is required for registration');
+                return false;
+            }
         }
 
         return true;
@@ -65,40 +88,55 @@ const Auth = () => {
 
         try {
             if (isLoginView) {
-              const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: formData.email,
-                    password: formData.password,
-                }),
-              });
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: formData.email,
+                        password: formData.password,
+                    }),
+                });
 
-              const data = await response.json();
+                const data = await response.json();
 
-              if (!response.ok){
-                throw new Error(data.message || 'Failed to login');
-              }
-              localStorage.setItem('user-token', data.token);
-              if (data.user && data.user.role){
-                localStorage.setItem('user-role', data.user.role);
-              }
-              
+                if (!response.ok){
+                    throw new Error(data.message || 'Failed to login');
+                }
+                localStorage.setItem('user-token', data.token);
+                if (data.user && data.user.role){
+                    localStorage.setItem('user-role', data.user.role);
+                }
 
-              document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24}`
+                if (data.user && data.user.school_id){
+                    localStorage.setItem('user-school-id', data.user.school_id.toString());
+                    if (data.user.school_name){
+                        localStorage.setItem('user-school_name', data.user.school_name);
+                    }
+                }
 
-              if (data.dashboardPath) {
-                router.push(data.dashboardPath);
-              }
-              else if (data.user && data.user.role) {
-                const dashboardPath = data.user.role === '2' ? '/teacher-dashboard' : '/student-dashboard';
-                router.push(dashboardPath);
-              }
-              else {
-                router.push('/student-dashboard');
-              }  
+                document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24}`
+
+                if (data.dashboardPath) {
+                    router.push(data.dashboardPath);
+                }
+                else if (data.user && data.user.role) {
+                    let dashboardPath;
+                    switch(data.user.role){
+                        case 'admin':
+                            dashboardPath = '/admin-dashboard';
+                            break;
+                        case 'teacher':
+                            dashboardPath = '/teacher-dashboard';
+                            break;
+                        default:
+                            dashboardPath = '/student-dashboard';
+                    }
+                }
+                else {
+                    router.push('/student-dashboard');
+                }
             }
             else {
                 const response = await fetch('/api/auth/register', {
@@ -111,6 +149,8 @@ const Auth = () => {
                         email: formData.email,
                         password: formData.password,
                         role: formData.role,
+                        admin_code: formData.admin_code,
+                        school_code: formData.school_code
                     }),
                 });
 
@@ -124,7 +164,9 @@ const Auth = () => {
                 setFormData({
                     ...formData,
                     password:'',
-                    confirmPassword:''
+                    confirmPassword:'',
+                    admin_code: '',
+                    school_code: ''
                 });
                 alert('Registration successful. Please login');
             }
@@ -180,8 +222,44 @@ const Auth = () => {
                                     >
                                         <option value="student">Student</option>
                                         <option value="teacher">Teacher</option>
+                                        <option value="admin">Admin</option>
                                     </select>
                                 </div>
+
+                                {showAdminCode && (
+                                    <div>
+                                        <label htmlFor="admin_code" className="sr-only">Admin Code</label>
+                                        <input
+                                            id="admin_code"
+                                            name="admin_code"
+                                            type="text"
+                                            required
+                                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                                            placeholder="Admin Registration Code"
+                                            value={formData.admin_code}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                )}
+
+                                {!showAdminCode && (
+                                    <div>
+                                        <label htmlFor="school_code" className="sr-only">School Code</label>
+                                        <input
+                                            id="school_code"
+                                            name="school_code"
+                                            type="text"
+                                            required
+                                            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-400 text-gray-900 dark:text-white dark:bg-gray-800 focus:outline-none focus:ring-primary focus:border-primary focus:z-10 sm:text-sm"
+                                            placeholder="School Access Code"
+                                            value={formData.school_code}
+                                            onChange={handleInputChange}
+                                        />
+                                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            Enter the access code provided by your school administrator
+                                        </p>
+                                    </div>
+                                )}
                             </>
                         )}
                         <div>
@@ -269,9 +347,12 @@ const Auth = () => {
                                 email:'',
                                 password:'',
                                 confirmPassword:'',
-                                role:'student'
+                                role:'student',
+                                admin_code: '',
+                                school_code: ''
                             });
-                        }} 
+                            setShowAdminCode(false);
+                        }}
                     >
                         {isLoginView ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
                     </button>

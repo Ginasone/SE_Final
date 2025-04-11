@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import jwt from 'jsonwebtoken';
+import jwt, { JwtPayload } from 'jsonwebtoken';
 
 const protectedPaths = [
     '/student-dashboard',
     '/teacher-dashboard',
+    '/admin-dashboard',
     '/courses',
     '/profile',
     '/assignments',
@@ -13,6 +14,10 @@ const protectedPaths = [
 const authPaths = [
     '/auth',
 ];
+
+const adminPaths = ['/admin-dashboard'];
+const teacherPaths = ['/teacher-dashboard'];
+const studentPaths = ['/student-dashboard'];
 
 export async function middleware(request: NextRequest){
     const path = request.nextUrl.pathname;
@@ -27,9 +32,6 @@ export async function middleware(request: NextRequest){
         path === ap || path.startsWith(`${ap}/`)
     );
 
-    const teacherPaths = ['/teacher-dashboard'];
-    const studentPaths = ['/student-dashboard'];
-
     if (!token && isProtectedPath) {
         const url = new URL('/auth', request.url);
         url.searchParams.set('callbackUrl', encodeURI(request.url));
@@ -42,15 +44,28 @@ export async function middleware(request: NextRequest){
             const decoded = jwt.verify(token, secretKey) as jwt.JwtPayload;
 
             if (isAuthPath) {
-                const dashboardPath = decoded.role === '2' ? '/teacher-dashboard' : '/student-dashboard';
+                let dashboardPath;
+                switch (decoded.role){
+                    case 'admin':
+                        dashboardPath = '/admin-dashboard';
+                        break;
+                    case 'teacher':
+                        dashboardPath = '/teacher-dashboard';
+                        break;
+                    default:
+                        dashboardPath = '/student-dashboard'; 
+                }
                 return NextResponse.redirect(new URL(dashboardPath, request.url));
             }
 
-            if (teacherPaths.some(p => path == p || path.startsWith(`${p}/`)) && decoded.role !== '2') {
+            if (adminPaths.some(p => path === p || path.startsWith(`${p}/`)) && decoded.role !== 'admin'){
+                const dashboardPath = decoded.role === 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+                return NextResponse.redirect(new URL(dashboardPath, request.url));
+            }
+            if (teacherPaths.some(p => path === p || path.startsWith(`${p}/`)) && decoded.role !== 'teacher' && decoded.role !== 'admin'){
                 return NextResponse.redirect(new URL('/student-dashboard', request.url));
             }
-
-            if (studentPaths.some(p => path == p || path.startsWith(`${p}/`)) && decoded.role !== '1') {
+            if (studentPaths.some(p => path === p || path.startsWith(`${p}/`)) && decoded.role !== 'student' && decoded.role !== 'admin'){
                 return NextResponse.redirect(new URL('/teacher-dashboard', request.url));
             }
         }
