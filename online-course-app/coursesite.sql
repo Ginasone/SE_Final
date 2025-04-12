@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 11, 2025 at 07:40 PM
+-- Generation Time: Apr 11, 2025 at 11:46 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -60,7 +60,7 @@ CREATE TABLE `courses` (
   `description` text NOT NULL,
   `instructor_id` int(11) DEFAULT NULL,
   `thumbnail` text DEFAULT NULL,
-  `course_code`text NOT NULL,
+  `course_code` text NOT NULL,
   `difficulty_level` varchar(50) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -153,6 +153,31 @@ CREATE TABLE `reviews` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `schools`
+--
+
+CREATE TABLE `schools` (
+  `id` int(4) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `location` varchar(255) NOT NULL,
+  `contact_email` varchar(255) NOT NULL,
+  `contact_phone` varchar(50) DEFAULT NULL,
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
+  `access_code` varchar(20) NOT NULL DEFAULT ''' ''',
+  `created_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
+  `updated_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `schools`
+--
+
+INSERT INTO `schools` (`id`, `name`, `location`, `contact_email`, `contact_phone`, `status`, `access_code`, `created_at`, `updated_at`) VALUES
+(0, 'Archbishop Porter Girls\' Secondary School', 'Takoradi', 'arch@gmail.com', '0573305386', 'active', '6JU83R', '2025-04-11 21:38:50.745506', '2025-04-11 21:38:50.745506');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `submissions`
 --
 
@@ -176,10 +201,20 @@ CREATE TABLE `users` (
   `full_name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password_hash` text NOT NULL,
-  `role` varchar(20) NOT NULL DEFAULT '1',
+  `role` enum('student','teacher','admin') NOT NULL DEFAULT 'student',
   `profile_picture` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `school_id` int(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `profile_picture`, `created_at`, `school_id`) VALUES
+(3, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$pN.QuFDSSBwTjZbRSZ6R3.Y3CbXiVa.FXN6VYXHTzUcgCl85JcYLy', 'admin', NULL, '2025-04-11 20:55:27', NULL),
+(4, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$jFQPs6vk0PZSFwFQVn0hIuT5XTWk14WFdGdq9rbUXyZt/..2PZc7S', 'student', NULL, '2025-04-11 21:40:26', 0),
+(5, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$Cc6PcIfBxtPkTml0MqyicuprcDMTOct5f8AkfmkUhXnRMcsC344l2', 'teacher', NULL, '2025-04-11 21:42:02', 0);
 
 -- --------------------------------------------------------
 
@@ -255,6 +290,13 @@ ALTER TABLE `reviews`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `schools`
+--
+ALTER TABLE `schools`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `name` (`name`);
+
+--
 -- Indexes for table `submissions`
 --
 ALTER TABLE `submissions`
@@ -265,7 +307,8 @@ ALTER TABLE `submissions`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
+  ADD UNIQUE KEY `email` (`email`),
+  ADD KEY `school_id_ct` (`school_id`);
 
 --
 -- Indexes for table `user_progress`
@@ -341,13 +384,23 @@ ALTER TABLE `submissions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `user_progress`
 --
 ALTER TABLE `user_progress`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `school_id_ct` FOREIGN KEY (`school_id`) REFERENCES `schools` (`id`) ON DELETE SET NULL ON UPDATE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
