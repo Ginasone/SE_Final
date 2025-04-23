@@ -2,6 +2,7 @@
 
 import React from "react";
 import {FaBookReader} from 'react-icons/fa';
+import { FaBookOpen } from "react-icons/fa";
 
 
 const TeacherDashboard = () => {
@@ -26,7 +27,7 @@ const TeacherDashboard = () => {
             <section className="mt-8 w-full">
                 <div className="mt-8 w-full">
                     <div className="bg-blue-50">
-                    <h2 className="text-lg font-semibold text-black">Courses</h2>
+                    <h2 className="text-lg font-semibold text-black"><FaBookOpen />Courses</h2>
                     </div>
                 </div>
             </section>
