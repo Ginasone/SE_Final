@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 11, 2025 at 11:46 PM
+-- Generation Time: Apr 26, 2025 at 01:11 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -55,14 +55,18 @@ CREATE TABLE `assignments` (
 --
 
 CREATE TABLE `courses` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` int(4) NOT NULL,
   `title` varchar(255) NOT NULL,
+  `school_id` int(4) DEFAULT NULL,
   `description` text NOT NULL,
-  `instructor_id` int(11) DEFAULT NULL,
+  `teacher_id` int(4) DEFAULT NULL,
   `thumbnail` text DEFAULT NULL,
-  `course_code` text NOT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `status` enum('draft','published','archived') NOT NULL DEFAULT 'draft',
   `difficulty_level` varchar(50) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -72,11 +76,11 @@ CREATE TABLE `courses` (
 --
 
 CREATE TABLE `enrollments` (
-  `id` bigint(20) UNSIGNED NOT NULL,
-  `user_id` int(11) DEFAULT NULL,
-  `course_id` int(11) DEFAULT NULL,
+  `id` int(4) NOT NULL,
+  `student_id` int(4) NOT NULL,
+  `course_id` int(4) NOT NULL,
   `enrolled_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `completed` tinyint(1) DEFAULT 0
+  `status` enum('active','completed','dropped') NOT NULL DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -173,7 +177,7 @@ CREATE TABLE `schools` (
 --
 
 INSERT INTO `schools` (`id`, `name`, `location`, `contact_email`, `contact_phone`, `status`, `access_code`, `created_at`, `updated_at`) VALUES
-(0, 'Archbishop Porter Girls\' Secondary School', 'Takoradi', 'arch@gmail.com', '0573305386', 'active', '6JU83R', '2025-04-11 21:38:50.745506', '2025-04-11 21:38:50.745506');
+(0, 'Archbishop Porter Girls\' Secondary School', 'Takoradi', 'georginayakoba18@gmail.com', '0573305386', 'active', 'YCJDN6', '2025-04-18 22:27:07.036896', '2025-04-18 22:27:07.036896');
 
 -- --------------------------------------------------------
 
@@ -197,13 +201,15 @@ CREATE TABLE `submissions` (
 --
 
 CREATE TABLE `users` (
-  `id` bigint(20) UNSIGNED NOT NULL,
+  `id` int(4) NOT NULL,
   `full_name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `password_hash` text NOT NULL,
   `role` enum('student','teacher','admin') NOT NULL DEFAULT 'student',
+  `status` enum('active','inactive') NOT NULL DEFAULT 'active',
   `profile_picture` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
   `school_id` int(4) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -211,10 +217,10 @@ CREATE TABLE `users` (
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `profile_picture`, `created_at`, `school_id`) VALUES
-(3, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$pN.QuFDSSBwTjZbRSZ6R3.Y3CbXiVa.FXN6VYXHTzUcgCl85JcYLy', 'admin', NULL, '2025-04-11 20:55:27', NULL),
-(4, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$jFQPs6vk0PZSFwFQVn0hIuT5XTWk14WFdGdq9rbUXyZt/..2PZc7S', 'student', NULL, '2025-04-11 21:40:26', 0),
-(5, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$Cc6PcIfBxtPkTml0MqyicuprcDMTOct5f8AkfmkUhXnRMcsC344l2', 'teacher', NULL, '2025-04-11 21:42:02', 0);
+INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `status`, `profile_picture`, `created_at`, `updated_at`, `school_id`) VALUES
+(6, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$jDeRxYqJ02trP0CvA3N51uHmEJHpi24QIdr2NA/3ZnO1hj4./KUx.', 'admin', 'active', NULL, '2025-04-18 22:20:00', '2025-04-18 22:20:00.771455', NULL),
+(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 0),
+(8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 0);
 
 -- --------------------------------------------------------
 
@@ -251,13 +257,17 @@ ALTER TABLE `assignments`
 -- Indexes for table `courses`
 --
 ALTER TABLE `courses`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `school_id_foreign` (`school_id`),
+  ADD KEY `teacher_id_fk` (`teacher_id`);
 
 --
 -- Indexes for table `enrollments`
 --
 ALTER TABLE `enrollments`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `student_ids_fk` (`student_id`),
+  ADD KEY `course_fk` (`course_id`);
 
 --
 -- Indexes for table `lessons`
@@ -294,7 +304,8 @@ ALTER TABLE `reviews`
 --
 ALTER TABLE `schools`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `name` (`name`);
+  ADD UNIQUE KEY `name` (`name`),
+  ADD UNIQUE KEY `access_code` (`access_code`);
 
 --
 -- Indexes for table `submissions`
@@ -336,13 +347,13 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `courses`
 --
 ALTER TABLE `courses`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `enrollments`
 --
 ALTER TABLE `enrollments`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `lessons`
@@ -384,7 +395,7 @@ ALTER TABLE `submissions`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `user_progress`
@@ -395,6 +406,20 @@ ALTER TABLE `user_progress`
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `courses`
+--
+ALTER TABLE `courses`
+  ADD CONSTRAINT `school_id_foreign` FOREIGN KEY (`school_id`) REFERENCES `schools` (`id`) ON DELETE SET NULL ON UPDATE SET NULL,
+  ADD CONSTRAINT `teacher_id_fk` FOREIGN KEY (`teacher_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE SET NULL;
+
+--
+-- Constraints for table `enrollments`
+--
+ALTER TABLE `enrollments`
+  ADD CONSTRAINT `course_fk` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `student_ids_fk` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `users`

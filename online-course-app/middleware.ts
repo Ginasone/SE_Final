@@ -20,6 +20,14 @@ const teacherPaths = ['/teacher-dashboard'];
 const studentPaths = ['/student-dashboard'];
 
 export async function middleware(request: NextRequest){
+    if (request.nextUrl.pathname.startsWith('/api/')){
+        console.log(`API Request: ${request.method} ${request.nextUrl.pathname}`);
+
+        const response = NextResponse.next();
+        response.headers.set('X-Correlation-ID', crypto.randomUUID());
+
+        return response;
+    }
     const path = request.nextUrl.pathname;
 
     const token = request.cookies.get('token')?.value || request.headers.get('authorization')?.split(' ')[1];
@@ -83,6 +91,6 @@ export async function middleware(request: NextRequest){
 
 export const config = {
     matcher: [
-        '/((?!api|_next|_static|_vercel|[\\w-]+\\.\\w+).*)',
+        '/((?!api|_next/static|_next/image|favicon.ico).*)'
     ],
 };
