@@ -185,7 +185,7 @@ export async function POST(request: NextRequest){
         const [newCourseRows] = await connection.execute(`
             SELECT c.*,
                 s.name as school_name,
-                u.full_name as teacher_name,
+                u.full_name as teacher_name
             FROM courses c
             LEFT JOIN schools s ON c.school_id = s.id
             LEFT JOIN users u ON c.teacher_id = u.id

@@ -129,7 +129,7 @@ export default function AdminDashboardPage() {
         
         if (courseForm.school_id) {
             const teachersForSchool = teachers.filter(teacher => 
-              teacher.school_id === courseForm.school_id
+                teacher.school_id === courseForm.school_id
             );
             console.log(`Filtered teachers for school ${courseForm.school_id}:`, teachersForSchool);
         }
@@ -649,6 +649,9 @@ export default function AdminDashboardPage() {
 
     const handleCourseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
+        console.log(value);
+        console.log(value);
+
         setCourseForm(prev => ({
             ...prev,
             [name]: ['school_id', 'teacher_id'].includes(name)
@@ -1497,7 +1500,7 @@ export default function AdminDashboardPage() {
                                             >
                                                 <option value="">Select a school</option>
                                                     {schools.map(school => (
-                                                        <option key={school.id} value={school.id.toString()}>{school.name}</option>
+                                                        <option key={school.id} value={school.id}>{school.name}</option>
                                                     ))}
                                             </select>
                                             {courseForm.status !== 'draft' && !courseForm.school_id && (

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 26, 2025 at 01:11 PM
+-- Generation Time: May 01, 2025 at 06:14 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -68,6 +68,13 @@ CREATE TABLE `courses` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `courses`
+--
+
+INSERT INTO `courses` (`id`, `title`, `school_id`, `description`, `teacher_id`, `thumbnail`, `start_date`, `end_date`, `status`, `difficulty_level`, `created_at`, `updated_at`) VALUES
+(1, 'bbb', 1, 'ywuwu', 8, NULL, '2025-04-30', '2025-05-11', 'published', NULL, '2025-04-30 10:30:31', '2025-04-30 10:30:31.751841');
 
 -- --------------------------------------------------------
 
@@ -177,7 +184,8 @@ CREATE TABLE `schools` (
 --
 
 INSERT INTO `schools` (`id`, `name`, `location`, `contact_email`, `contact_phone`, `status`, `access_code`, `created_at`, `updated_at`) VALUES
-(0, 'Archbishop Porter Girls\' Secondary School', 'Takoradi', 'georginayakoba18@gmail.com', '0573305386', 'active', 'YCJDN6', '2025-04-18 22:27:07.036896', '2025-04-18 22:27:07.036896');
+(1, 'Archbishop Porter Girls\' Secondary School', 'Takoradi', 'georginayakoba18@gmail.com', '0573305386', 'active', 'YCJDN6', '2025-04-18 22:27:07.036896', '2025-04-18 22:27:07.036896'),
+(2, 'Asshagsg', 'svsgs', 'gina@gmail.com', '9927582934', 'active', '8JXUUY', '2025-04-30 10:26:53.823198', '2025-04-30 10:26:53.823198');
 
 -- --------------------------------------------------------
 
@@ -219,8 +227,8 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `status`, `profile_picture`, `created_at`, `updated_at`, `school_id`) VALUES
 (6, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$jDeRxYqJ02trP0CvA3N51uHmEJHpi24QIdr2NA/3ZnO1hj4./KUx.', 'admin', 'active', NULL, '2025-04-18 22:20:00', '2025-04-18 22:20:00.771455', NULL),
-(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 0),
-(8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 0);
+(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1),
+(8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 1);
 
 -- --------------------------------------------------------
 
@@ -347,7 +355,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `courses`
 --
 ALTER TABLE `courses`
-  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `enrollments`
@@ -384,6 +392,12 @@ ALTER TABLE `quizzes`
 --
 ALTER TABLE `reviews`
   MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `schools`
+--
+ALTER TABLE `schools`
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `submissions`
