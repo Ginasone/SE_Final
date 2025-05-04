@@ -158,7 +158,7 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
   const fetchProfileAndStats = useCallback(async () => {
     if (!studentId) {
       console.log("No student ID provided for profile fetch");
-      return;
+      return null;
     }
     
     try {
@@ -170,8 +170,12 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
       
       if (isMounted.current) {
         console.log("Setting profile data:", data.profile);
-        setProfile(data.profile);
-        setStats(data.stats);
+        if (data.profile) {
+          setProfile(data.profile);
+          setStats(data.stats);
+        } else {
+          throw new Error(`No profile found for student ID: ${studentId}`);
+        }
       }
       
       return data;
@@ -327,7 +331,8 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
   }, [studentId, fetchProfileAndStats, fetchCourses, fetchNotifications]);
   
   /**
-   * Force exit loading state after timeout
+   * Force exit loading state after timeout - FIXED
+   * This ensures we don't get stuck in infinite loading state
    */
   useEffect(() => {
     // Safety mechanism to prevent indefinite loading
@@ -337,7 +342,7 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
         setIsLoading(false);
         // Only set error if none exists already
         if (!error && isMounted.current) {
-          setError("Loading timed out. Please try refreshing.");
+          setError("Loading timed out. Please try refreshing or check your internet connection.");
         }
       }
     }, 10000); // 10 seconds timeout
@@ -352,6 +357,7 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     if (!studentId) return;
     
     setIsRefreshing(true);
+    setError(null); // Clear any previous errors
     await fetchAllDashboardData();
   }, [studentId, fetchAllDashboardData]);
   
@@ -452,15 +458,16 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     }
   }, [apiRequest, studentId]);
   
-  // Initial data loading
+  // Initial data loading - only fetch when we have a valid studentId
   useEffect(() => {
     console.log("useEffect triggered with studentId:", studentId);
+    
     // Only fetch data if there is a valid student ID
     if (studentId) {
       fetchAllDashboardData();
     } else {
-      // If no student ID, make sure we're in loading state
-      setIsLoading(true);
+      // If no student ID, exit loading state to prevent spinner
+      setIsLoading(false);
     }
     
     // Cleanup function for unmounting
@@ -496,5 +503,3 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     hasUnreadNotifications
   };
 }
-
-export default useStudentDashboard;
