@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 04, 2025 at 03:31 PM
+-- Generation Time: May 05, 2025 at 12:28 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -74,7 +74,8 @@ CREATE TABLE `courses` (
 --
 
 INSERT INTO `courses` (`id`, `title`, `school_id`, `description`, `teacher_id`, `thumbnail`, `start_date`, `end_date`, `status`, `difficulty_level`, `created_at`, `updated_at`) VALUES
-(1, 'bbb', 1, 'ywuwu', 8, NULL, '2025-04-30', '2025-05-11', 'published', NULL, '2025-04-30 10:30:31', '2025-04-30 10:30:31.751841');
+(1, 'bbb', 1, 'ywuwu', 8, NULL, '2025-04-30', '2025-05-11', 'published', NULL, '2025-04-30 10:30:31', '2025-04-30 10:30:31.751841'),
+(2, 'Science', 1, 'Things', 8, NULL, '2025-05-04', '2025-05-31', 'published', NULL, '2025-05-04 21:01:50', '2025-05-04 21:01:50.087533');
 
 -- --------------------------------------------------------
 
@@ -98,13 +99,21 @@ CREATE TABLE `enrollments` (
 
 CREATE TABLE `lessons` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `course_id` int(11) DEFAULT NULL,
+  `course_id` int(4) NOT NULL,
   `title` varchar(255) NOT NULL,
   `content` text DEFAULT NULL,
   `video_url` text DEFAULT NULL,
-  `position` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `position` int(11) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `lessons`
+--
+
+INSERT INTO `lessons` (`id`, `course_id`, `title`, `content`, `video_url`, `position`, `created_at`, `updated_at`) VALUES
+(1, 2, 'Bb', 'BBBB', NULL, 1, '2025-05-04 22:27:03', '2025-05-04 22:27:03');
 
 -- --------------------------------------------------------
 
@@ -229,7 +238,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `status`, `profile_picture`, `created_at`, `updated_at`, `school_id`, `reset_token`, `reset_token_expiry`) VALUES
 (6, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$jDeRxYqJ02trP0CvA3N51uHmEJHpi24QIdr2NA/3ZnO1hj4./KUx.', 'admin', 'active', NULL, '2025-04-18 22:20:00', '2025-04-18 22:20:00.771455', NULL, NULL, NULL),
-(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1, NULL, NULL),
+(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1, 'f071779cfb43e63075a0be1fc2b8f8c587245f19fe4a3fee47460adf64e0eb2f', '2025-05-04 20:19:05'),
 (8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 1, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -276,14 +285,15 @@ ALTER TABLE `courses`
 --
 ALTER TABLE `enrollments`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `student_ids_fk` (`student_id`),
-  ADD KEY `course_fk` (`course_id`);
+  ADD UNIQUE KEY `course_id` (`course_id`),
+  ADD UNIQUE KEY `student_id` (`student_id`);
 
 --
 -- Indexes for table `lessons`
 --
 ALTER TABLE `lessons`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `course_fk_id` (`course_id`);
 
 --
 -- Indexes for table `notifications`
@@ -357,7 +367,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `courses`
 --
 ALTER TABLE `courses`
-  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `enrollments`
@@ -369,7 +379,7 @@ ALTER TABLE `enrollments`
 -- AUTO_INCREMENT for table `lessons`
 --
 ALTER TABLE `lessons`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -436,6 +446,12 @@ ALTER TABLE `courses`
 ALTER TABLE `enrollments`
   ADD CONSTRAINT `course_fk` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `student_ids_fk` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `lessons`
+--
+ALTER TABLE `lessons`
+  ADD CONSTRAINT `course_fk_id` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `users`
