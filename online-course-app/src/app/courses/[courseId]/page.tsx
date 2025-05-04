@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from "react";
+import React from "react";
+import { useParams } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { FaArrowLeft, FaCheck, FaLock, FaPlay, FaBook } from "react-icons/fa";
 
+// Define interfaces for type safety
 interface Lesson {
   id: number;
   title: string;
@@ -28,7 +31,11 @@ interface CourseDetails {
   progress: number;
 }
 
-const CourseDetailPage = ({ params }: { params: { courseId: string } }) => {
+export default function Page() {
+  // Use the useParams hook to get the courseId
+  const params = useParams();
+  const courseId = params.courseId as string;
+  
   const router = useRouter();
   const [course, setCourse] = useState<CourseDetails | null>(null);
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -38,7 +45,6 @@ const CourseDetailPage = ({ params }: { params: { courseId: string } }) => {
   useEffect(() => {
     const fetchCourseDetails = async () => {
       try {
-        const courseId = params.courseId;
         if (!courseId) {
           router.replace('/student-dashboard');
           return;
@@ -95,14 +101,14 @@ const CourseDetailPage = ({ params }: { params: { courseId: string } }) => {
     };
 
     fetchCourseDetails();
-  }, [params.courseId, router]);
+  }, [courseId, router]);
 
   const goBack = () => {
     router.push('/student-dashboard');
   };
 
   const navigateToLesson = (lessonId: number) => {
-    router.push(`/courses/${params.courseId}/lessons/${lessonId}`);
+    router.push(`/courses/${courseId}/lessons/${lessonId}`);
   };
 
   const getProgressColor = (progress: number) => {
@@ -267,6 +273,4 @@ const CourseDetailPage = ({ params }: { params: { courseId: string } }) => {
       </div>
     </div>
   );
-};
-
-export default CourseDetailPage;
+}

@@ -1,28 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
-import { RowDataPacket, OkPacket } from "mysql2"; // Import types from mysql2
 
-// Define interfaces for database results
-interface CourseRow extends RowDataPacket {
-  id: number;
-  title: string;
-  description: string;
-  thumbnail: string | null;
-  start_date: string;
-  end_date: string;
-  status: string;
-  difficulty_level: string | null;
-  school_name: string | null;
-  teacher_name: string | null;
-}
-
-interface LessonStats extends RowDataPacket {
-  total_lessons: number;
-  completed_lessons: number;
-}
-
-// Get a database connection
+/**
+ * Database connection helper - Factory Pattern
+ * Creates and returns a new database connection
+ */
 async function getConnection() {
   return await mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
@@ -32,7 +15,10 @@ async function getConnection() {
   });
 }
 
-// Verify JWT token
+/**
+ * Authorization helper - Strategy Pattern
+ * Verifies JWT token from authorization header
+ */
 function verifyToken(authorization: string | null) {
   if (!authorization || !authorization.startsWith('Bearer ')) {
     return null;
@@ -49,25 +35,34 @@ function verifyToken(authorization: string | null) {
   }
 }
 
-// GET handler for course details
+/**
+ * GET handler for course details
+ */
 export async function GET(
   req: NextRequest,
   { params }: { params: { courseId: string } }
 ) {
+  console.log("Course API called with params:", params);
+  
   try {
     // Verify authentication
     const authHeader = req.headers.get('authorization');
     const decoded = verifyToken(authHeader);
     
     if (!decoded) {
+      console.log("Authentication failed, no valid token");
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
     }
 
+    console.log("User authenticated:", decoded.userId, decoded.role);
+
+    // Validate courseId parameter
     const courseId = params.courseId;
     if (!courseId || isNaN(Number(courseId))) {
+      console.log("Invalid courseId:", courseId);
       return NextResponse.json(
         { error: 'Valid course ID is required' },
         { status: 400 }
@@ -78,23 +73,27 @@ export async function GET(
     const connection = await getConnection();
 
     try {
-      // First check if the student has access to this course
-      const [enrollments] = await connection.execute<RowDataPacket[]>(
-        `SELECT id FROM enrollments 
-         WHERE student_id = ? AND course_id = ? AND status = 'active'`,
-        [decoded.userId, courseId]
-      );
-
-      // If not enrolled and not an admin, deny access
-      if ((!Array.isArray(enrollments) || enrollments.length === 0) && decoded.role !== 'admin') {
-        return NextResponse.json(
-          { error: 'You are not enrolled in this course' },
-          { status: 403 }
+      // First check if student is enrolled (for non-admin users)
+      if (decoded.role !== 'admin') {
+        console.log("Checking if user is enrolled in course");
+        const [enrollments] = await connection.execute(
+          `SELECT id FROM enrollments 
+           WHERE student_id = ? AND course_id = ? AND status = 'active'`,
+          [decoded.userId, courseId]
         );
+
+        // If not enrolled and not an admin, deny access
+        if (Array.isArray(enrollments) && enrollments.length === 0) {
+          console.log("User not enrolled in course and not admin");
+          return NextResponse.json(
+            { error: 'You are not enrolled in this course' },
+            { status: 403 }
+          );
+        }
       }
       
-      // Get basic course details
-      const [courseRows] = await connection.execute<CourseRow[]>(
+      // Get course details
+      const [courseRows] = await connection.execute(
         `SELECT c.id, c.title, c.description, c.thumbnail, c.start_date, c.end_date, 
                 c.status, c.difficulty_level, s.name as school_name,
                 u.full_name as teacher_name
@@ -112,31 +111,16 @@ export async function GET(
         );
       }
 
-      // Get lesson count and completed lessons
-      const [lessonStats] = await connection.execute<LessonStats[]>(
-        `SELECT 
-          (SELECT COUNT(*) FROM lessons WHERE course_id = ?) as total_lessons,
-          (SELECT COUNT(*) FROM user_progress WHERE user_id = ? AND course_id = ? AND completed = 1) as completed_lessons`,
-        [courseId, decoded.userId, courseId]
-      );
-
-      // Get the first course row
+      // Get the course data without progress calculation
       const courseData = courseRows[0];
-      
-      // Get stats with proper typing
-      const stats = lessonStats[0] || { total_lessons: 0, completed_lessons: 0 };
-      
-      // Calculate progress percentage
-      const totalLessons = stats.total_lessons || 0;
-      const completedLessons = stats.completed_lessons || 0;
-      const progress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
-      return NextResponse.json({
-        ...courseData,
-        total_lessons: totalLessons,
-        completed_lessons: completedLessons,
-        progress
-      });
+      return NextResponse.json(courseData);
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      return NextResponse.json(
+        { error: 'Database error occurred', details: dbError instanceof Error ? dbError.message : 'Unknown error' },
+        { status: 500 }
+      );
     } finally {
       await connection.end();
     }
