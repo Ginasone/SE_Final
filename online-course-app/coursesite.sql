@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 04, 2025 at 03:31 PM
+-- Generation Time: May 04, 2025 at 11:54 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -74,7 +74,8 @@ CREATE TABLE `courses` (
 --
 
 INSERT INTO `courses` (`id`, `title`, `school_id`, `description`, `teacher_id`, `thumbnail`, `start_date`, `end_date`, `status`, `difficulty_level`, `created_at`, `updated_at`) VALUES
-(1, 'bbb', 1, 'ywuwu', 8, NULL, '2025-04-30', '2025-05-11', 'published', NULL, '2025-04-30 10:30:31', '2025-04-30 10:30:31.751841');
+(1, 'bbb', 1, 'ywuwu', 8, NULL, '2025-04-30', '2025-05-11', 'published', NULL, '2025-04-30 10:30:31', '2025-04-30 10:30:31.751841'),
+(2, 'Science', 1, 'Things', 8, NULL, '2025-05-04', '2025-05-31', 'published', NULL, '2025-05-04 21:01:50', '2025-05-04 21:01:50.087533');
 
 -- --------------------------------------------------------
 
@@ -229,7 +230,7 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `status`, `profile_picture`, `created_at`, `updated_at`, `school_id`, `reset_token`, `reset_token_expiry`) VALUES
 (6, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$jDeRxYqJ02trP0CvA3N51uHmEJHpi24QIdr2NA/3ZnO1hj4./KUx.', 'admin', 'active', NULL, '2025-04-18 22:20:00', '2025-04-18 22:20:00.771455', NULL, NULL, NULL),
-(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1, NULL, NULL),
+(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1, 'f071779cfb43e63075a0be1fc2b8f8c587245f19fe4a3fee47460adf64e0eb2f', '2025-05-04 20:19:05'),
 (8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 1, NULL, NULL);
 
 -- --------------------------------------------------------
@@ -276,8 +277,8 @@ ALTER TABLE `courses`
 --
 ALTER TABLE `enrollments`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `student_ids_fk` (`student_id`),
-  ADD KEY `course_fk` (`course_id`);
+  ADD UNIQUE KEY `course_id` (`course_id`),
+  ADD UNIQUE KEY `student_id` (`student_id`);
 
 --
 -- Indexes for table `lessons`
@@ -357,7 +358,7 @@ ALTER TABLE `assignments`
 -- AUTO_INCREMENT for table `courses`
 --
 ALTER TABLE `courses`
-  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `enrollments`
