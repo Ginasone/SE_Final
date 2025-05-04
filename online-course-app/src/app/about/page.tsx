@@ -30,7 +30,7 @@ const AboutPage = () => {
                 Our Story
               </h2>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                EduHub was founded in 2023 with a clear mission: to make quality education accessible to all Ghanaian students, regardless of their location or circumstances. We recognized the challenges many students face in accessing educational resources, especially those in remote areas or with limited mobility.
+                EduHub was founded in 2025 with a clear mission: to make quality education accessible to all Ghanaian students, regardless of their location or circumstances. We recognized the challenges many students face in accessing educational resources, especially those in remote areas or with limited mobility.
               </p>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
                 Our team of educators, technologists, and education enthusiasts came together to create a platform that connects students with their schools and teachers digitally, ensuring continuity in education even when physical attendance isn't possible.
@@ -117,7 +117,7 @@ const AboutPage = () => {
             <div className="flex flex-col items-center">
               <div className="w-40 h-40 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mb-4 relative">
                 <Image
-                  src="/team-member1.jpeg"
+                  src="/team-member1.jpg"
                   alt="Team Member"
                   fill
                   className="object-cover"
@@ -127,10 +127,10 @@ const AboutPage = () => {
                   }}
                 />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Kofi Mensah</h3>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Georgina Yakoba Adjaye-Aggrey</h3>
               <p className="text-primary dark:text-blue-300">Founder & CEO</p>
               <p className="text-gray-600 dark:text-gray-400 text-center mt-2">
-                Former educator with 15 years of experience in Ghana's education system
+                Computer Science student in the class of 2026
               </p>
             </div>
 
@@ -138,7 +138,7 @@ const AboutPage = () => {
             <div className="flex flex-col items-center">
               <div className="w-40 h-40 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mb-4 relative">
                 <Image
-                  src="/team-member2.jpeg"
+                  src="/team-member2.jpg"
                   alt="Team Member"
                   fill
                   className="object-cover"
@@ -148,10 +148,10 @@ const AboutPage = () => {
                   }}
                 />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Ama Serwaa</h3>
-              <p className="text-primary dark:text-blue-300">Chief Education Officer</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Sedinam Aku Senaya</h3>
+              <p className="text-primary dark:text-blue-300">Founder & CEO</p>
               <p className="text-gray-600 dark:text-gray-400 text-center mt-2">
-                Curriculum development specialist with expertise in digital learning
+                Computer Science student in the class of 2026
               </p>
             </div>
 
@@ -159,7 +159,7 @@ const AboutPage = () => {
             <div className="flex flex-col items-center">
               <div className="w-40 h-40 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden mb-4 relative">
                 <Image
-                  src="/team-member3.jpeg"
+                  src="/team-member3.jpg"
                   alt="Team Member"
                   fill
                   className="object-cover"
@@ -169,10 +169,10 @@ const AboutPage = () => {
                   }}
                 />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Kwame Osei</h3>
-              <p className="text-primary dark:text-blue-300">Technology Director</p>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Nadia Dodoo</h3>
+              <p className="text-primary dark:text-blue-300">Founder & CEO</p>
               <p className="text-gray-600 dark:text-gray-400 text-center mt-2">
-                Tech entrepreneur with a passion for using technology to solve social challenges
+                Computer Science student in the class of 2026
               </p>
             </div>
           </div>

@@ -55,7 +55,7 @@ const Home = () => {
                 GES Syllabus
               </h3>
               <p className="text-gray-700 dark:text-gray-300 text-center">
-                Access lesons aligned with the Ghana Education Service curriculum, ensuring students stay no track with national educational standards
+                Access lessons aligned with the Ghana Education Service curriculum, ensuring students stay no track with national educational standards
               </p>
             </div>
 
@@ -73,7 +73,7 @@ const Home = () => {
 
             <div className="bg-blue-50 dark:bg-gray-700 p-6 rounded-lg shadow-md">
               <div className="bg-blue-100 dark:bg-blue-900 w-16 h-16 rounded-full flex items-center justify-center mb-4 mx-auto">
-                <FaLaptop className="text-3xl text-primary dark:text-bule-300"/>
+                <FaLaptop className="text-3xl text-primary dark:text-blue-300"/>
               </div>
               <h3 className="text-xl font-semibold text-center text-gray-900 dark:text-white mb-3">
                 Interactive Learning
