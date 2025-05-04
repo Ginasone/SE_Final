@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 01, 2025 at 06:14 PM
+-- Generation Time: May 04, 2025 at 03:31 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -218,17 +218,19 @@ CREATE TABLE `users` (
   `profile_picture` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp(6) NOT NULL DEFAULT current_timestamp(6),
-  `school_id` int(4) DEFAULT NULL
+  `school_id` int(4) DEFAULT NULL,
+  `reset_token` varchar(255) DEFAULT NULL,
+  `reset_token_expiry` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `users`
 --
 
-INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `status`, `profile_picture`, `created_at`, `updated_at`, `school_id`) VALUES
-(6, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$jDeRxYqJ02trP0CvA3N51uHmEJHpi24QIdr2NA/3ZnO1hj4./KUx.', 'admin', 'active', NULL, '2025-04-18 22:20:00', '2025-04-18 22:20:00.771455', NULL),
-(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1),
-(8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 1);
+INSERT INTO `users` (`id`, `full_name`, `email`, `password_hash`, `role`, `status`, `profile_picture`, `created_at`, `updated_at`, `school_id`, `reset_token`, `reset_token_expiry`) VALUES
+(6, 'Gigi Aggrey', 'gigi@gmail.com', '$2b$10$jDeRxYqJ02trP0CvA3N51uHmEJHpi24QIdr2NA/3ZnO1hj4./KUx.', 'admin', 'active', NULL, '2025-04-18 22:20:00', '2025-04-18 22:20:00.771455', NULL, NULL, NULL),
+(7, 'Georgina Yakoba Adjaye-Aggrey', 'georginayakoba18@gmail.com', '$2b$10$1.EWmHiUudrVXR9lkRE7cum.x3dfBsnvhr6nvkoXjAsrhXbSZCYXG', 'student', 'active', NULL, '2025-04-18 22:27:54', '2025-04-18 22:27:54.659657', 1, NULL, NULL),
+(8, 'Gina Aggrey', 'adjayeaggreyg@gmail.com', '$2b$10$YQlRX1zBVNCi0sICT8wrFuwlyklUw1V5SFsu6VPb2QPWe1rqaRTqy', 'teacher', 'active', NULL, '2025-04-18 22:31:01', '2025-04-18 22:31:01.349711', 1, NULL, NULL);
 
 -- --------------------------------------------------------
 
