@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { FaBookReader, FaUsers, FaBookOpen, FaChalkboardTeacher, FaUserGraduate, FaCalendarAlt } from 'react-icons/fa';
+import { FaUsers, FaBookOpen, FaChalkboardTeacher, FaUserGraduate } from 'react-icons/fa';
 
 interface Course {
     id: number;
@@ -182,7 +182,7 @@ const TeacherDashboardPage = () => {
                         
                         {courses.length === 0 ? (
                             <div className="text-center py-8">
-                                <p className="text-gray-500 dark:text-gray-400">You haven't been assigned to any courses yet.</p>
+                                <p className="text-gray-500 dark:text-gray-400">You haven&apos;t been assigned to any courses yet.</p>
                             </div>
                         ) : (
                             <div className="space-y-3">
