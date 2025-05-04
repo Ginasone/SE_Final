@@ -68,6 +68,13 @@ class StudentRepository {
   async getStudentProfile(studentId: number): Promise<StudentProfile | null> {
     try {
       console.log(`[Repository] Fetching profile for student: ${studentId}`);
+      
+      // Validate studentId to avoid SQL injection
+      if (!studentId || isNaN(Number(studentId)) || studentId <= 0) {
+        console.error(`[Repository] Invalid student ID: ${studentId}`);
+        return null;
+      }
+      
       const results = await query(
         `SELECT u.id, u.full_name, u.email, u.profile_picture, u.status, 
                 s.name as school_name, s.location as school_location
@@ -82,6 +89,11 @@ class StudentRepository {
         : null;
       
       console.log(`[Repository] Profile fetch result:`, profile ? "Found" : "Not found");
+      
+      if (!profile) {
+        console.warn(`[Repository] No profile found for student ID: ${studentId}`);
+      }
+      
       return profile;
     } catch (error) {
       console.error('[Repository] Error in getStudentProfile:', error);
@@ -99,6 +111,13 @@ class StudentRepository {
   async getEnrolledCoursesCount(studentId: number): Promise<number> {
     try {
       console.log(`[Repository] Getting course count for student: ${studentId}`);
+      
+      // Validate studentId to avoid SQL injection
+      if (!studentId || isNaN(Number(studentId)) || studentId <= 0) {
+        console.error(`[Repository] Invalid student ID: ${studentId}`);
+        return 0;
+      }
+      
       const results = await query(
         `SELECT COUNT(*) as course_count 
          FROM enrollments 
@@ -128,6 +147,13 @@ class StudentRepository {
   async getUnreadNotificationsCount(studentId: number): Promise<number> {
     try {
       console.log(`[Repository] Getting unread notifications count for student: ${studentId}`);
+      
+      // Validate studentId to avoid SQL injection
+      if (!studentId || isNaN(Number(studentId)) || studentId <= 0) {
+        console.error(`[Repository] Invalid student ID: ${studentId}`);
+        return 0;
+      }
+      
       const results = await query(
         `SELECT COUNT(*) as notification_count 
          FROM notifications 
@@ -157,6 +183,12 @@ class StudentRepository {
   async getEnrolledCourses(studentId: number): Promise<EnrolledCourse[]> {
     try {
       console.log(`[Repository] Getting enrolled courses for student: ${studentId}`);
+      
+      // Validate studentId to avoid SQL injection
+      if (!studentId || isNaN(Number(studentId)) || studentId <= 0) {
+        console.error(`[Repository] Invalid student ID: ${studentId}`);
+        return [];
+      }
       
       // First check if the student has any enrollments to avoid JOIN issues
       const enrollmentCheck = await query(
@@ -210,6 +242,16 @@ class StudentRepository {
   async getStudentNotifications(studentId: number, limit: number = 10): Promise<StudentNotification[]> {
     try {
       console.log(`[Repository] Getting notifications for student: ${studentId} (limit: ${limit})`);
+      
+      // Validate studentId to avoid SQL injection
+      if (!studentId || isNaN(Number(studentId)) || studentId <= 0) {
+        console.error(`[Repository] Invalid student ID: ${studentId}`);
+        return [];
+      }
+      
+      // Validate limit parameter
+      const safeLimit = Math.min(Math.max(1, limit), 50); // Between 1 and 50
+      
       const results = await query(
         `SELECT n.id, n.message, n.is_read, n.created_at,
                 c.id as course_id, c.title as course_title
@@ -218,7 +260,7 @@ class StudentRepository {
          WHERE n.user_id = ?
          ORDER BY n.created_at DESC
          LIMIT ?`,
-        [studentId, limit]
+        [studentId, safeLimit]
       ) as StudentNotification[];
       
       const notifications = Array.isArray(results) ? results : [];
@@ -240,10 +282,18 @@ class StudentRepository {
   async markNotificationAsRead(notificationId: number): Promise<boolean> {
     try {
       console.log(`[Repository] Marking notification as read: ${notificationId}`);
+      
+      // Validate notificationId
+      if (!notificationId || isNaN(Number(notificationId)) || notificationId <= 0) {
+        console.error(`[Repository] Invalid notification ID: ${notificationId}`);
+        return false;
+      }
+      
       await query(
         `UPDATE notifications SET is_read = 1 WHERE id = ?`,
         [notificationId]
       );
+      
       console.log(`[Repository] Notification ${notificationId} marked as read`);
       return true;
     } catch (error) {
