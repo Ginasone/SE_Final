@@ -5,12 +5,11 @@
  * Centralizes all data fetching, state management, and API interactions for the dashboard.
  * 
  * @author Nadia
- * @version 1.0.0
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// Define TypeScript interfaces for type safety and better intellisense
+// Define TypeScript interfaces for type safety
 export interface StudentProfile {
   id: number;
   full_name: string;
@@ -52,11 +51,6 @@ export interface Notification {
   course_title: string | null;
 }
 
-export interface ApiError {
-  message: string;
-  code: string;
-}
-
 export interface StudentDashboardData {
   profile: StudentProfile | null;
   stats: DashboardStats;
@@ -65,31 +59,22 @@ export interface StudentDashboardData {
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
+  authError: boolean;
 }
 
 export interface StudentDashboardHook extends StudentDashboardData {
-  // Data manipulation methods
   markNotificationAsRead: (notificationId: number) => Promise<boolean>;
   dismissAllNotifications: () => Promise<boolean>;
   refreshData: () => Promise<void>;
   refreshCourses: () => Promise<void>;
   refreshNotifications: () => Promise<void>;
-  
-  // Course actions
-  viewCourseDetails: (courseId: number) => void;
-  
-  // UI state helpers
   hasUnreadNotifications: boolean;
-  activeCourses: Course[];
-  completedCourses: Course[];
-  upcomingDeadlines: Array<{ courseId: number, title: string, dueDate: string }>;
 }
 
 /**
- * Custom hook for the student dashboard
- * Implements comprehensive state management and API interactions
+ * Custom hook for the student dashboard with authentication awareness
  * 
- * @param {number|null} studentId - The student ID or null if not authenticated
+ * @param {number|null} studentId - The student ID or null if not yet authenticated
  * @returns {StudentDashboardHook} - Dashboard data and interaction methods
  */
 export function useStudentDashboard(studentId: number | null): StudentDashboardHook {
@@ -101,14 +86,19 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<boolean>(false);
   
-  // References to track mounted state and prevent state updates after unmount
+  // References to track mounted state
   const isMounted = useRef(true);
   
-  // Cache for storing JWT token
+  /**
+   * Get authentication token from localStorage
+   */
   const getAuthToken = useCallback(() => {
-    // In a real app with proper auth, you'd get this from context or storage
-    return localStorage.getItem('auth_token') || '';
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('user-token') || '';
+    }
+    return '';
   }, []);
   
   /**
@@ -129,6 +119,7 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     options: RequestInit = {}
   ): Promise<T> => {
     try {
+      console.log(`Making API request to ${url}`);
       const response = await fetch(url, {
         ...options,
         headers: {
@@ -138,14 +129,23 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
       });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error?.message || 
-          `API error: ${response.status} ${response.statusText}`
-        );
+        // Handle authentication errors specifically
+        if (response.status === 401) {
+          setAuthError(true);
+          console.error(`Authentication error (401) from ${url}`);
+          throw new Error('Authentication failed. Please log in again.');
+        }
+        
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error?.message || errorData.message || 
+                           `API error: ${response.status} ${response.statusText}`;
+        console.error(`API error from ${url}: ${errorMessage}`);
+        throw new Error(errorMessage);
       }
       
-      return await response.json() as T;
+      const data = await response.json() as T;
+      console.log(`API response from ${url}:`, data);
+      return data;
     } catch (err) {
       console.error(`API request error: ${url}`, err);
       throw err;
@@ -156,25 +156,32 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
    * Fetch student profile and dashboard stats
    */
   const fetchProfileAndStats = useCallback(async () => {
-    if (!studentId) return;
+    if (!studentId) {
+      console.log("No student ID provided for profile fetch");
+      return;
+    }
     
     try {
+      console.log(`Fetching profile for student ID: ${studentId}`);
       const data = await apiRequest<{
         profile: StudentProfile;
         stats: DashboardStats;
       }>(`/api/student?studentId=${studentId}`);
       
       if (isMounted.current) {
+        console.log("Setting profile data:", data.profile);
         setProfile(data.profile);
         setStats(data.stats);
       }
       
       return data;
     } catch (err) {
+      console.error("Error fetching profile:", err);
       if (isMounted.current) {
         setError(err instanceof Error ? err.message : 'Failed to load profile data');
       }
-      throw err;
+      // Don't throw here to avoid breaking Promise.allSettled
+      return null;
     }
   }, [studentId, apiRequest]);
   
@@ -182,21 +189,30 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
    * Fetch enrolled courses
    */
   const fetchCourses = useCallback(async () => {
-    if (!studentId) return [];
+    if (!studentId) {
+      console.log("No student ID provided for courses fetch");
+      return [];
+    }
     
     try {
+      console.log(`Fetching courses for student ID: ${studentId}`);
       const data = await apiRequest<Course[]>(`/api/student/courses?studentId=${studentId}`);
       
       if (isMounted.current) {
+        console.log(`Received ${data.length} courses`);
         setCourses(data);
       }
       
       return data;
     } catch (err) {
+      console.error("Error fetching courses:", err);
       if (isMounted.current) {
+        // Set courses to empty array on error rather than leaving undefined
+        setCourses([]);
         setError(err instanceof Error ? err.message : 'Failed to load course data');
       }
-      throw err;
+      // Return empty array instead of throwing
+      return [];
     }
   }, [studentId, apiRequest]);
   
@@ -204,23 +220,32 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
    * Fetch notifications
    */
   const fetchNotifications = useCallback(async (limit: number = 10) => {
-    if (!studentId) return [];
+    if (!studentId) {
+      console.log("No student ID provided for notifications fetch");
+      return [];
+    }
     
     try {
+      console.log(`Fetching notifications for student ID: ${studentId}`);
       const data = await apiRequest<Notification[]>(
         `/api/student/notifications?studentId=${studentId}&limit=${limit}`
       );
       
       if (isMounted.current) {
+        console.log(`Received ${data.length} notifications`);
         setNotifications(data);
       }
       
       return data;
     } catch (err) {
+      console.error("Error fetching notifications:", err);
       if (isMounted.current) {
+        // Set notifications to empty array on error
+        setNotifications([]);
         setError(err instanceof Error ? err.message : 'Failed to load notifications');
       }
-      throw err;
+      // Return empty array instead of throwing
+      return [];
     }
   }, [studentId, apiRequest]);
   
@@ -228,50 +253,97 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
    * Fetch all dashboard data at once
    */
   const fetchAllDashboardData = useCallback(async () => {
-    if (!studentId) return;
+    if (!studentId) {
+      console.log("No student ID provided, skipping dashboard data fetch");
+      setIsLoading(false); // Important: exit loading state even when no studentId
+      return;
+    }
     
+    console.log(`Fetching all dashboard data for student ID: ${studentId}`);
     setIsLoading(true);
     setError(null);
     
     try {
       // Execute requests in parallel for performance
+      console.log("Making parallel API requests for dashboard data");
       const [profileData, coursesData, notificationsData] = await Promise.allSettled([
         fetchProfileAndStats(),
         fetchCourses(),
         fetchNotifications()
       ]);
       
-      // Check for errors
+      console.log("API response statuses:", {
+        profile: profileData.status, 
+        courses: coursesData.status, 
+        notifications: notificationsData.status
+      });
+      
+      // Check for errors but don't throw - just log and update state
       const errors: string[] = [];
       
       if (profileData.status === 'rejected') {
+        console.error("Profile data fetch failed:", profileData.reason);
         errors.push('Failed to load profile data');
+      } else if (profileData.value) {
+        console.log("Profile data fetch succeeded");
       }
       
       if (coursesData.status === 'rejected') {
+        console.error("Course data fetch failed:", coursesData.reason);
         errors.push('Failed to load course data');
+      } else {
+        console.log("Course data fetch succeeded:", 
+          coursesData.value ? `${coursesData.value.length} courses` : "No courses found");
       }
       
       if (notificationsData.status === 'rejected') {
+        console.error("Notifications fetch failed:", notificationsData.reason);
         errors.push('Failed to load notifications');
+      } else {
+        console.log("Notifications fetch succeeded:", 
+          notificationsData.value ? `${notificationsData.value.length} notifications` : "No notifications found");
       }
       
       if (errors.length > 0 && isMounted.current) {
+        console.warn("Setting error state:", errors.join(', '));
         setError(errors.join(', '));
       } else if (isMounted.current) {
+        console.log("Clearing error state - all fetches successful or with valid empty results");
         setError(null);
       }
     } catch (err) {
+      console.error("Unexpected error in fetchAllDashboardData:", err);
       if (isMounted.current) {
         setError('Failed to load dashboard data');
       }
     } finally {
+      // Most important part: Always exit loading state
       if (isMounted.current) {
+        console.log("Setting loading state to false");
         setIsLoading(false);
         setIsRefreshing(false);
       }
     }
   }, [studentId, fetchProfileAndStats, fetchCourses, fetchNotifications]);
+  
+  /**
+   * Force exit loading state after timeout
+   */
+  useEffect(() => {
+    // Safety mechanism to prevent indefinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (isLoading && isMounted.current) {
+        console.warn("Loading timeout triggered - forcing exit from loading state");
+        setIsLoading(false);
+        // Only set error if none exists already
+        if (!error && isMounted.current) {
+          setError("Loading timed out. Please try refreshing.");
+        }
+      }
+    }, 10000); // 10 seconds timeout
+    
+    return () => clearTimeout(loadingTimeout);
+  }, [isLoading, error]);
   
   /**
    * Refresh all dashboard data
@@ -351,9 +423,10 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
    * Mark all notifications as read
    */
   const dismissAllNotifications = useCallback(async (): Promise<boolean> => {
+    if (!studentId) return false;
+    
     try {
       // This assumes you have an API endpoint for this operation
-      // If not, you'd need to make multiple requests
       await apiRequest('/api/student/notifications/dismiss-all', {
         method: 'POST',
         body: JSON.stringify({ studentId })
@@ -379,44 +452,26 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     }
   }, [apiRequest, studentId]);
   
-  /**
-   * Navigate to course details
-   * This would typically use router in a real app
-   */
-  const viewCourseDetails = useCallback((courseId: number) => {
-    // In a real app with Next.js router:
-    // router.push(`/student/courses/${courseId}`);
-    console.log(`Navigate to course: ${courseId}`);
-    
-    // For demo purposes, just log the action
-    window.location.href = `/student/courses/${courseId}`;
-  }, []);
-  
   // Initial data loading
   useEffect(() => {
+    console.log("useEffect triggered with studentId:", studentId);
+    // Only fetch data if there is a valid student ID
     if (studentId) {
       fetchAllDashboardData();
+    } else {
+      // If no student ID, make sure we're in loading state
+      setIsLoading(true);
     }
     
     // Cleanup function for unmounting
     return () => {
+      console.log("Unmounting useStudentDashboard");
       isMounted.current = false;
     };
   }, [studentId, fetchAllDashboardData]);
   
   // Computed properties
   const hasUnreadNotifications = notifications.some(notification => !notification.is_read);
-  
-  const activeCourses = courses.filter(course => 
-    course.enrollment_status === 'active' && course.progress < 100
-  );
-  
-  const completedCourses = courses.filter(course => 
-    course.enrollment_status === 'completed' || course.progress === 100
-  );
-  
-  // This would need real assignment data in a full implementation
-  const upcomingDeadlines: Array<{ courseId: number, title: string, dueDate: string }> = [];
   
   // Return all data and methods
   return {
@@ -428,6 +483,7 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     isLoading,
     isRefreshing,
     error,
+    authError,
     
     // Data actions
     markNotificationAsRead,
@@ -435,13 +491,9 @@ export function useStudentDashboard(studentId: number | null): StudentDashboardH
     refreshData,
     refreshCourses,
     refreshNotifications,
-    viewCourseDetails,
     
     // Computed properties
-    hasUnreadNotifications,
-    activeCourses,
-    completedCourses,
-    upcomingDeadlines
+    hasUnreadNotifications
   };
 }
 

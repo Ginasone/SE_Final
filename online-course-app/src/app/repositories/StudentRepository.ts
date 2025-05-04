@@ -67,6 +67,7 @@ class StudentRepository {
    */
   async getStudentProfile(studentId: number): Promise<StudentProfile | null> {
     try {
+      console.log(`[Repository] Fetching profile for student: ${studentId}`);
       const results = await query(
         `SELECT u.id, u.full_name, u.email, u.profile_picture, u.status, 
                 s.name as school_name, s.location as school_location
@@ -76,12 +77,16 @@ class StudentRepository {
         [studentId]
       );
       
-      return Array.isArray(results) && results.length > 0 
+      const profile = Array.isArray(results) && results.length > 0 
         ? results[0] as StudentProfile
         : null;
+      
+      console.log(`[Repository] Profile fetch result:`, profile ? "Found" : "Not found");
+      return profile;
     } catch (error) {
-      console.error('Error in getStudentProfile:', error);
-      throw new Error('Failed to fetch student profile');
+      console.error('[Repository] Error in getStudentProfile:', error);
+      // Return null on error instead of throwing to prevent cascade failures
+      return null;
     }
   }
 
@@ -93,6 +98,7 @@ class StudentRepository {
    */
   async getEnrolledCoursesCount(studentId: number): Promise<number> {
     try {
+      console.log(`[Repository] Getting course count for student: ${studentId}`);
       const results = await query(
         `SELECT COUNT(*) as course_count 
          FROM enrollments 
@@ -100,12 +106,16 @@ class StudentRepository {
         [studentId]
       ) as CoursesCountResult[];
       
-      return Array.isArray(results) && results.length > 0 
+      const count = Array.isArray(results) && results.length > 0 
         ? results[0].course_count
         : 0;
+      
+      console.log(`[Repository] Course count: ${count}`);
+      return count;
     } catch (error) {
-      console.error('Error in getEnrolledCoursesCount:', error);
-      throw new Error('Failed to fetch enrolled courses count');
+      console.error('[Repository] Error in getEnrolledCoursesCount:', error);
+      // Return 0 on error instead of throwing
+      return 0;
     }
   }
 
@@ -117,6 +127,7 @@ class StudentRepository {
    */
   async getUnreadNotificationsCount(studentId: number): Promise<number> {
     try {
+      console.log(`[Repository] Getting unread notifications count for student: ${studentId}`);
       const results = await query(
         `SELECT COUNT(*) as notification_count 
          FROM notifications 
@@ -124,12 +135,16 @@ class StudentRepository {
         [studentId]
       ) as NotificationsCountResult[];
       
-      return Array.isArray(results) && results.length > 0 
+      const count = Array.isArray(results) && results.length > 0 
         ? results[0].notification_count
         : 0;
+      
+      console.log(`[Repository] Unread notifications count: ${count}`);
+      return count;
     } catch (error) {
-      console.error('Error in getUnreadNotificationsCount:', error);
-      throw new Error('Failed to fetch notifications count');
+      console.error('[Repository] Error in getUnreadNotificationsCount:', error);
+      // Return 0 on error
+      return 0;
     }
   }
 
@@ -141,6 +156,23 @@ class StudentRepository {
    */
   async getEnrolledCourses(studentId: number): Promise<EnrolledCourse[]> {
     try {
+      console.log(`[Repository] Getting enrolled courses for student: ${studentId}`);
+      
+      // First check if the student has any enrollments to avoid JOIN issues
+      const enrollmentCheck = await query(
+        "SELECT COUNT(*) as count FROM enrollments WHERE student_id = ?",
+        [studentId]
+      );
+      
+      // If no enrollments, return empty array immediately
+      if (Array.isArray(enrollmentCheck) && 
+          enrollmentCheck.length > 0 && 
+          enrollmentCheck[0].count === 0) {
+        console.log(`[Repository] Student ${studentId} has no enrollments, returning empty array`);
+        return [];
+      }
+      
+      // Only perform the JOIN query if we have enrollments
       const results = await query(
         `SELECT c.id, c.title, c.description, c.thumbnail, c.start_date, c.end_date, 
                 c.status, c.difficulty_level, s.name as school_name,
@@ -158,10 +190,13 @@ class StudentRepository {
         [studentId, studentId]
       ) as EnrolledCourse[];
       
-      return Array.isArray(results) ? results : [];
+      const courses = Array.isArray(results) ? results : [];
+      console.log(`[Repository] Found ${courses.length} enrolled courses`);
+      return courses;
     } catch (error) {
-      console.error('Error in getEnrolledCourses:', error);
-      throw new Error('Failed to fetch enrolled courses');
+      console.error('[Repository] Error in getEnrolledCourses:', error);
+      // Return empty array on error instead of throwing
+      return [];
     }
   }
 
@@ -174,6 +209,7 @@ class StudentRepository {
    */
   async getStudentNotifications(studentId: number, limit: number = 10): Promise<StudentNotification[]> {
     try {
+      console.log(`[Repository] Getting notifications for student: ${studentId} (limit: ${limit})`);
       const results = await query(
         `SELECT n.id, n.message, n.is_read, n.created_at,
                 c.id as course_id, c.title as course_title
@@ -185,10 +221,13 @@ class StudentRepository {
         [studentId, limit]
       ) as StudentNotification[];
       
-      return Array.isArray(results) ? results : [];
+      const notifications = Array.isArray(results) ? results : [];
+      console.log(`[Repository] Found ${notifications.length} notifications`);
+      return notifications;
     } catch (error) {
-      console.error('Error in getStudentNotifications:', error);
-      throw new Error('Failed to fetch notifications');
+      console.error('[Repository] Error in getStudentNotifications:', error);
+      // Return empty array on error
+      return [];
     }
   }
 
@@ -200,14 +239,16 @@ class StudentRepository {
    */
   async markNotificationAsRead(notificationId: number): Promise<boolean> {
     try {
+      console.log(`[Repository] Marking notification as read: ${notificationId}`);
       await query(
         `UPDATE notifications SET is_read = 1 WHERE id = ?`,
         [notificationId]
       );
+      console.log(`[Repository] Notification ${notificationId} marked as read`);
       return true;
     } catch (error) {
-      console.error('Error in markNotificationAsRead:', error);
-      throw new Error('Failed to update notification');
+      console.error('[Repository] Error in markNotificationAsRead:', error);
+      return false;
     }
   }
 }
