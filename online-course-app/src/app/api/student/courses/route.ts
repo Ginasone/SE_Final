@@ -1,15 +1,43 @@
 /**
- * Student Courses API Routes
+ * API Route for Student Courses
  * 
- * 
- * @author Nadia
+ * This file provides a simplified API route for fetching student courses
+ * with improved error handling and response structure.
  */
 
 import { NextResponse } from 'next/server';
+
+// Use MySQL2 promise interface for database queries
 import mysql from 'mysql2/promise';
+import { RowDataPacket } from 'mysql2'; // Import the RowDataPacket type
+
+// JWT for authentication verification
 import jwt from 'jsonwebtoken';
 
-// Database connection helper - uses environment variables
+// Define interfaces for our database results
+interface EnrollmentCount extends RowDataPacket {
+  count: number;
+}
+
+interface StudentRow extends RowDataPacket {
+  id: number;
+}
+
+interface CourseRow extends RowDataPacket {
+  id: number;
+  title: string;
+  description: string;
+  thumbnail: string | null;
+  start_date: string;
+  end_date: string;
+  status: string;
+  difficulty_level: string | null;
+  school_name: string | null;
+  teacher_name: string | null;
+  enrollment_status: string;
+}
+
+// Database connection helper
 async function getConnection() {
   return await mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
@@ -17,6 +45,23 @@ async function getConnection() {
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'coursesite',
   });
+}
+
+// Verify authentication token
+function verifyToken(authorization: string | null) {
+  if (!authorization || !authorization.startsWith('Bearer ')) {
+    return null;
+  }
+
+  const token = authorization.split(' ')[1];
+  
+  try {
+    const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
+    return jwt.verify(token, secretKey) as jwt.JwtPayload;
+  } catch (error) {
+    console.error('Token verification error:', error);
+    return null;
+  }
 }
 
 /**
@@ -30,6 +75,17 @@ async function getConnection() {
  */
 export async function GET(req: Request) {
   try {
+    // Get auth header
+    const authHeader = req.headers.get('authorization');
+    const decoded = verifyToken(authHeader);
+    
+    if (!decoded) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
     // Extract query parameters
     const url = new URL(req.url);
     const studentId = url.searchParams.get('studentId');
@@ -42,6 +98,14 @@ export async function GET(req: Request) {
       );
     }
 
+    // Additional authorization check - only allow access to own data or admin
+    if (decoded.role !== 'admin' && decoded.userId !== Number(studentId)) {
+      return NextResponse.json(
+        { error: 'Unauthorized access to student data' },
+        { status: 403 }
+      );
+    }
+
     // Get database connection
     const connection = await getConnection();
 
@@ -49,13 +113,12 @@ export async function GET(req: Request) {
       console.log(`Fetching courses for student ID: ${studentId}`);
       
       // First check if student exists and has proper role
-      const [studentCheck] = await connection.execute(
+      const [studentCheck] = await connection.execute<StudentRow[]>(
         "SELECT id FROM users WHERE id = ? AND role = 'student'",
         [studentId]
       );
       
       if (!Array.isArray(studentCheck) || studentCheck.length === 0) {
-        console.log(`Student ID ${studentId} not found or not a student role`);
         return NextResponse.json(
           { error: 'Student not found' },
           { status: 404 }
@@ -63,12 +126,12 @@ export async function GET(req: Request) {
       }
 
       // Check if student has any enrollments
-      const [enrollmentCheck] = await connection.execute(
+      const [enrollmentCheck] = await connection.execute<EnrollmentCount[]>(
         "SELECT COUNT(*) as count FROM enrollments WHERE student_id = ?",
         [studentId]
       );
       
-      // If no enrollments, return empty array
+      // Early return if no enrollments
       if (Array.isArray(enrollmentCheck) && 
           enrollmentCheck.length > 0 && 
           enrollmentCheck[0].count === 0) {
@@ -77,7 +140,7 @@ export async function GET(req: Request) {
       }
       
       // Get enrolled courses with data we need
-      const [rows] = await connection.execute(
+      const [rows] = await connection.execute<CourseRow[]>(
         `SELECT c.id, c.title, c.description, c.thumbnail, c.start_date, c.end_date, 
                 c.status, c.difficulty_level, s.name as school_name,
                 u.full_name as teacher_name,
@@ -91,7 +154,17 @@ export async function GET(req: Request) {
         [studentId]
       );
       
-      return NextResponse.json(rows || []);
+      // Add cache control headers
+      const headers = new Headers();
+      headers.append('Cache-Control', 'max-age=60'); // Cache for 1 minute
+      
+      return NextResponse.json(
+        rows || [], 
+        { 
+          status: 200,
+          headers
+        }
+      );
     } finally {
       // Always close the database connection
       await connection.end();
