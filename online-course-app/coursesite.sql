@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 04, 2025 at 11:54 PM
+-- Generation Time: May 05, 2025 at 12:28 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -99,13 +99,21 @@ CREATE TABLE `enrollments` (
 
 CREATE TABLE `lessons` (
   `id` bigint(20) UNSIGNED NOT NULL,
-  `course_id` int(11) DEFAULT NULL,
+  `course_id` int(4) NOT NULL,
   `title` varchar(255) NOT NULL,
   `content` text DEFAULT NULL,
   `video_url` text DEFAULT NULL,
-  `position` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `position` int(11) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `lessons`
+--
+
+INSERT INTO `lessons` (`id`, `course_id`, `title`, `content`, `video_url`, `position`, `created_at`, `updated_at`) VALUES
+(1, 2, 'Bb', 'BBBB', NULL, 1, '2025-05-04 22:27:03', '2025-05-04 22:27:03');
 
 -- --------------------------------------------------------
 
@@ -284,7 +292,8 @@ ALTER TABLE `enrollments`
 -- Indexes for table `lessons`
 --
 ALTER TABLE `lessons`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `course_fk_id` (`course_id`);
 
 --
 -- Indexes for table `notifications`
@@ -370,7 +379,7 @@ ALTER TABLE `enrollments`
 -- AUTO_INCREMENT for table `lessons`
 --
 ALTER TABLE `lessons`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `notifications`
@@ -437,6 +446,12 @@ ALTER TABLE `courses`
 ALTER TABLE `enrollments`
   ADD CONSTRAINT `course_fk` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `student_ids_fk` FOREIGN KEY (`student_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `lessons`
+--
+ALTER TABLE `lessons`
+  ADD CONSTRAINT `course_fk_id` FOREIGN KEY (`course_id`) REFERENCES `courses` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `users`
