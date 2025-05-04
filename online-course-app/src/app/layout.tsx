@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Poppins} from "next/font/google";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header/Header";
 import Footer from "@/components/Footer/Footer";
 import ThemeProvider from "@/components/ThemeProvider/ThemeProvider";
+import AppProviders from "./AppProviders";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -12,11 +13,9 @@ const poppins = Poppins({
   variable: "--font-poppins"
 });
 
-
-
 export const metadata: Metadata = {
-  title: "Online Course App",
-  description: "The best online learning app for Ghanaian students",
+  title: "EduHub - Online Learning Platform",
+  description: "The best online learning platform for Ghanaian students",
 };
 
 export default function RootLayout({
@@ -26,15 +25,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={poppins.className} 
-      >
+      <body className={poppins.className}>
         <ThemeProvider>
-          <main className="font-normal">
-            <Header/>
-            {children}
-            <Footer/>
-          </main>
+          <AppProviders>
+            <main className="font-normal">
+              <Header />
+              {children}
+              <Footer />
+            </main>
+          </AppProviders>
         </ThemeProvider>
       </body>
     </html>
