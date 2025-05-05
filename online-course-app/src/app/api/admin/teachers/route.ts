@@ -21,6 +21,7 @@ const verifyAdminToken = async (request: NextRequest) => {
         return decoded;
     }
     catch (error) {
+        console.error("Error in operation:", error);
         return null;
     }
 };

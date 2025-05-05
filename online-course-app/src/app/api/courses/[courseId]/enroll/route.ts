@@ -160,6 +160,15 @@ export async function POST(
         `, [user.id, `You have successfully enrolled in a new course. Course ID: ${courseId}`]);
 
         // Get the enrollment ID
+        interface MySQLInsertResult {
+            insertId: number;
+            affectedRows: number;
+            fieldCount: number;
+            info: string;
+            serverStatus: number;
+            warningStatus: number;
+          }
+
         const enrollmentId = (result as any).insertId;
         
         await connection.end();

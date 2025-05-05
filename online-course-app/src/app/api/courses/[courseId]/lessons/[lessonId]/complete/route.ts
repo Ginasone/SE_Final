@@ -14,6 +14,58 @@ import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 
+// Database result interfaces
+interface MySQLQueryResult {
+  fieldCount: number;
+  affectedRows: number;
+  insertId: number;
+  serverStatus: number;
+  warningStatus: number;
+  info: string;
+}
+
+// For user progress records
+interface ProgressRecord {
+  id: number;
+  completed: boolean;
+  completed_at?: string;
+}
+
+// For enrollment records
+interface EnrollmentRecord {
+  id: number;
+  status: string;
+}
+
+// For lesson records
+interface LessonRecord {
+  id: number;
+  course_id: number;
+  title: string;
+  content?: string;
+}
+
+// For count results
+interface CountResult {
+  count: number;
+}
+
+// For decoded JWT payload
+interface JwtUserPayload {
+  userId: number;
+  email: string;
+  role: 'student' | 'teacher' | 'admin';
+  name: string;
+  schoolId?: number;
+}
+
+// For progress notification
+interface ProgressNotification {
+  userId: number;
+  courseId: number;
+  message: string;
+}
+
 /**
  * Database Connection Helper
  */
@@ -90,7 +142,7 @@ abstract class ApiRequestHandler {
    */
   protected abstract authenticate(req: NextRequest): Promise<{
     success: boolean;
-    decoded?: any;
+    decoded?: JwtUserPayload;
     message?: string;
     statusCode?: number;
   }>;
@@ -143,12 +195,12 @@ class ProgressRepository {
 
     if (Array.isArray(existingProgress) && existingProgress.length > 0) {
       // If record exists but not completed, update it
-      if (!(existingProgress[0] as any).completed) {
+      if (!(existingProgress[0] as ProgressRecord).completed) {
         await connection.execute(
           `UPDATE user_progress 
            SET completed = 1, completed_at = NOW() 
            WHERE id = ?`,
-          [(existingProgress[0] as any).id]
+          [(existingProgress[0] as ProgressRecord).id]
         );
       }
     } else {
@@ -397,11 +449,11 @@ class LessonCompletionHandler extends ApiRequestHandler {
     try {
       // Check enrollment (unless admin)
       if (decoded.role !== 'admin') {
-        const isEnrolled = await this.progressRepository.isUserEnrolledInCourse(
+        const isEnrolled = (await this.progressRepository.isUserEnrolledInCourse(
           connection, 
           userId, 
           courseId
-        );
+        )) as boolean;
         
         if (!isEnrolled) {
           return {
@@ -412,11 +464,11 @@ class LessonCompletionHandler extends ApiRequestHandler {
       }
       
       // Check if lesson exists and belongs to course
-      const isValidLesson = await this.progressRepository.isLessonValid(
+      const isValidLesson = (await this.progressRepository.isLessonValid(
         connection, 
         lessonId, 
         courseId
-      );
+      )) as boolean;
       
       if (!isValidLesson) {
         return {

@@ -36,7 +36,20 @@ export async function POST(request: NextRequest){
             );
         }
 
-        const user = rows[0] as any;
+        interface User {
+            id: number;
+            full_name: string;
+            email: string;
+            role: 'student' | 'teacher' | 'admin';
+            school_id: number | null;
+            school_name?: string;
+            status: 'active' | 'inactive';
+            created_at: string;
+            password_hash: string;
+            school_code?: string;
+        }
+
+        const user = rows[0] as User;
 
         const isPasswordValid = await bcrypt.compare(password, user.password_hash);
 

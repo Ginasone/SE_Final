@@ -21,6 +21,7 @@ const verifyAdminToken = async (request: NextRequest) => {
         return decoded;
     }
     catch (error) {
+        console.error("Error in operation:", error);
         return null;
     }
 };
@@ -179,7 +180,7 @@ export async function POST(request: NextRequest){
             ]
         );
 
-        // @ts-expect-error
+        // @ts-expect-error - MySQL insert result type doesn't properly define insertId property
         const courseId = result.insertId;
 
         const [newCourseRows] = await connection.execute(`
@@ -194,7 +195,7 @@ export async function POST(request: NextRequest){
 
         await connection.end();
 
-        // @ts-expect-error
+        // @ts-expect-error - MySQL query result type is not properly defined but structure is known
         const newCourse = newCourseRows[0];
 
         return NextResponse.json({

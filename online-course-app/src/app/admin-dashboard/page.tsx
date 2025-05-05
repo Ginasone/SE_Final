@@ -407,6 +407,7 @@ export default function AdminDashboardPage() {
                 ...((!isUserEditMode || isResetPassword) ? { password: userForm.password } : {})
             };
 
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { confirmPassword:_, ...dataToSend } = userData;
 
             const url = isUserEditMode

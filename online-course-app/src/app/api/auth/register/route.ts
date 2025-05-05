@@ -83,7 +83,17 @@ export async function POST(request: NextRequest){
                 );
             }
 
-            schoolId = (schools[0] as any).id;
+            interface School {
+                id: number;
+                name: string;
+                location: string;
+                contact_email: string;
+                contact_phone: string;
+                access_code: string;
+                status: 'active' | 'inactive';
+            }
+
+            schoolId = (schools[0] as School).id;
             roleValue = role === 'teacher' ? 'teacher' : 'student';
         }
 
@@ -95,6 +105,15 @@ export async function POST(request: NextRequest){
             [full_name, email, hashedPassword, roleValue, schoolId]
         );
 
+        interface School {
+            id: number;
+            name: string;
+            location: string;
+            contact_email: string;
+            contact_phone: string;
+            access_code: string;
+            status: 'active' | 'inactive';
+        }
         let schoolInfo = null;
         if (schoolInfo) {
             const [schoolResults] = await connection.execute(
@@ -105,14 +124,14 @@ export async function POST(request: NextRequest){
             if (Array.isArray(schoolResults) && schoolResults.length > 0){
                 schoolInfo = {
                     id: schoolId,
-                    name: (schoolResults[0] as any).name 
+                    name: (schoolResults[0] as School).name 
                 };
             }
         }
 
         await connection.end();
 
-        // @ts-expect-error
+        // @ts-expect-error - MySQL insert result doesn't have proper TypeScript type definition for insertId
         const userId = result.insertId;
 
         return NextResponse.json({

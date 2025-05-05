@@ -22,6 +22,7 @@ const verifyAdminToken = async (request: NextRequest) => {
         return decoded;
     }
     catch (error) {
+        console.error("Error in operation:", error);
         return null;
     }
 };
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           }
         const user = rows[0] as UserRow;
 
-        //@ts-expect-error
+        //@ts-expect-error - MySQL result doesn't match TypeScript type but structure is known
         delete user.password_hash;
 
         return NextResponse.json({
@@ -185,7 +186,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         await connection.end();
 
-        //@ts-expect-error
+        //@ts-expect-error - MySQL query result type lacks proper definition but structure is known
         const updatedUser = updated[0];
 
         delete updatedUser.password_hash;
