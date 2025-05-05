@@ -69,8 +69,21 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             );
         }
 
-        //@ts-ignore
-        const course = rows[0];
+        interface CourseRow {
+            id: number;
+            title: string;
+            description: string;
+            school_id: number | null;
+            school_name?: string;
+            teacher_id: number | null;
+            teacher_name?: string;
+            start_date:string;
+            end_date: string;
+            status: 'draft' | 'published' | 'archived';
+            student_count?: number;
+            created_at: string;
+          }
+        const course = rows[0] as CourseRow;
 
         return NextResponse.json({
             course
@@ -229,7 +242,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         await connection.end();
 
-        //@ts-ignore
+        //@ts-expect-error
         const updatedCourse = updatedCourseRows[0];
 
         return NextResponse.json({
@@ -278,7 +291,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             [courseId]
         );
 
-        // @ts-ignore
+        // @ts-expect-error
         if (enrollments[0].count > 0){
             await connection.end();
             return NextResponse.json(

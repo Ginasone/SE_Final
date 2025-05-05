@@ -112,7 +112,7 @@ export async function POST(request: NextRequest){
 
         await connection.end();
 
-        // @ts-ignore
+        // @ts-expect-error
         const userId = result.insertId;
 
         return NextResponse.json({

@@ -61,8 +61,16 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             );
         }
 
-        //@ts-ignore
-        const school = rows[0];
+        interface SchoolRow {
+            id: number;
+            name: string;
+            location: string;
+            contact_email: string;
+            contact_phone: string;
+            access_code: string;
+            status: 'active' | 'inactive';
+          }
+        const school = rows[0] as SchoolRow;
 
         return NextResponse.json({
             school
@@ -160,7 +168,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         await connection.end();
 
-        //@ts-ignore
+        //@ts-expect-error
         const updatedSchool = updatedRows[0];
 
         return NextResponse.json({
@@ -209,7 +217,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             [schoolId]
         );
 
-        //@ts-ignore
+        //@ts-expect-error
         if (associatedUsers[0].count > 0){
             await connection.end();
             return NextResponse.json(
@@ -223,7 +231,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             [schoolId]
         );
 
-        // @ts-ignore
+        // @ts-expect-error
         if (associatedCourses[0].count > 0){
             await connection.end();
             return NextResponse.json(

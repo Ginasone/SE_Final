@@ -33,7 +33,7 @@ const AboutPage = () => {
                 EduHub was founded in 2025 with a clear mission: to make quality education accessible to all Ghanaian students, regardless of their location or circumstances. We recognized the challenges many students face in accessing educational resources, especially those in remote areas or with limited mobility.
               </p>
               <p className="text-gray-700 dark:text-gray-300 mb-4">
-                Our team of educators, technologists, and education enthusiasts came together to create a platform that connects students with their schools and teachers digitally, ensuring continuity in education even when physical attendance isn't possible.
+                Our team of educators, technologists, and education enthusiasts came together to create a platform that connects students with their schools and teachers digitally, ensuring continuity in education even when physical attendance isn&apos;t possible.
               </p>
               <p className="text-gray-700 dark:text-gray-300">
                 Today, EduHub serves thousands of students across Ghana, partnering with schools to deliver curriculum-aligned content while also offering additional skills development courses that prepare students for future opportunities.
@@ -214,7 +214,7 @@ const AboutPage = () => {
             Join the EduHub Community
           </h2>
           <p className="text-xl text-white mb-8 max-w-2xl mx-auto">
-            Whether you're a student, teacher, or school administrator, there's a place for you in our growing educational ecosystem.
+            Whether you&apos;re a student, teacher, or school administrator, there&apos;s a place for you in our growing educational ecosystem.
           </p>
           <Link
             href="/auth"

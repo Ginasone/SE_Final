@@ -233,7 +233,7 @@ const Auth = () => {
                     </h2>
                     {isForgotPasswordView && (
                         <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-                            Enter your email address and we'll send you a link to reset your password.
+                            Enter your email address and we&apos;ll send you a link to reset your password.
                         </p>
                     )}
                 </div>
@@ -472,7 +472,7 @@ const Auth = () => {
                                 setShowAdminCode(false);
                             }}
                         >
-                            {isLoginView ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+                            {isLoginView ? "Don&apos;t have an account? Sign up" : "Already have an account? Sign in"}
                         </button>
                     </div>
                 )}

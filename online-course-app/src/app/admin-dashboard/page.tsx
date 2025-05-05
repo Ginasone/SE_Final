@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from "react";
-import { FaSchool, FaUser, FaBook, FaPlus, FaEdit, FaTrash, FaKey, FaCopy, FaFilter, FaSort, FaUserGraduate, FaChalkboardTeacher, FaUserShield, FaUsersCog, FaCalendarAlt, FaUsers } from "react-icons/fa";
+import { FaSchool, FaUser, FaBook, FaPlus, FaEdit, FaTrash, FaKey, FaCopy, FaFilter, FaUserGraduate, FaChalkboardTeacher, FaUserShield, FaCalendarAlt, FaUsers } from "react-icons/fa";
 import { MdDashboard } from "react-icons/md";
 import { useRouter } from "next/navigation";
 

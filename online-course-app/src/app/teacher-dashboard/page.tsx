@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaBookReader, FaUsers, FaBookOpen, FaChalkboardTeacher, FaUserGraduate, 
-         FaCalendarAlt, FaPlus, FaEdit, FaTrash, FaVideo, FaFileAlt, FaLink } from 'react-icons/fa';
+         FaPlus, FaEdit, FaTrash, FaVideo, FaFileAlt } from 'react-icons/fa';
 
 interface Course {
     id: number;

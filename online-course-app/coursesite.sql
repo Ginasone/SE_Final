@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 05, 2025 at 12:28 AM
+-- Generation Time: May 05, 2025 at 04:51 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -91,6 +91,14 @@ CREATE TABLE `enrollments` (
   `status` enum('active','completed','dropped') NOT NULL DEFAULT 'active'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `enrollments`
+--
+
+INSERT INTO `enrollments` (`id`, `student_id`, `course_id`, `enrolled_at`, `status`) VALUES
+(1, 7, 2, '2025-05-04 22:57:41', 'active'),
+(3, 7, 1, '2025-05-05 14:28:10', 'active');
+
 -- --------------------------------------------------------
 
 --
@@ -128,6 +136,14 @@ CREATE TABLE `notifications` (
   `is_read` tinyint(1) DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `message`, `is_read`, `created_at`) VALUES
+(1, 7, 'You have successfully enrolled in a new course. Course ID: 2', 0, '2025-05-04 22:57:41'),
+(2, 7, 'You have successfully enrolled in a new course. Course ID: 1', 0, '2025-05-05 14:28:10');
 
 -- --------------------------------------------------------
 
@@ -285,8 +301,8 @@ ALTER TABLE `courses`
 --
 ALTER TABLE `enrollments`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `course_id` (`course_id`),
-  ADD UNIQUE KEY `student_id` (`student_id`);
+  ADD KEY `student_id` (`student_id`) USING BTREE,
+  ADD KEY `course_id` (`course_id`) USING BTREE;
 
 --
 -- Indexes for table `lessons`
@@ -373,7 +389,7 @@ ALTER TABLE `courses`
 -- AUTO_INCREMENT for table `enrollments`
 --
 ALTER TABLE `enrollments`
-  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(4) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `lessons`
@@ -385,7 +401,7 @@ ALTER TABLE `lessons`
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `questions`

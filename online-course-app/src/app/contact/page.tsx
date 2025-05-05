@@ -156,7 +156,7 @@ const ContactPage = () => {
             {success ? (
               <div className="bg-green-100 dark:bg-green-900 border border-green-400 text-green-700 dark:text-green-200 px-4 py-3 rounded relative mb-4">
                 <p className="text-center">
-                  Thank you for reaching out! Your message has been sent successfully. We'll get back to you as soon as possible.
+                  Thank you for reaching out! Your message has been sent successfully. We&apos;ll get back to you as soon as possible.
                 </p>
               </div>
             ) : (
@@ -270,7 +270,7 @@ const ContactPage = () => {
             Find Us
           </h2>
           <div className="max-w-5xl mx-auto h-96 bg-gray-200 dark:bg-gray-700 rounded-lg shadow-md overflow-hidden">
-            {/* Replace with your actual map implementation */}
+            {/* Replace with actual map implementation */}
             <div className="w-full h-full flex items-center justify-center bg-blue-50 dark:bg-gray-700">
               <div className="text-center p-8">
                 <FaMapMarkerAlt className="text-5xl text-primary dark:text-blue-300 mx-auto mb-4" />

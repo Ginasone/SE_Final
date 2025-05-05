@@ -179,7 +179,7 @@ export async function POST(request: NextRequest){
             ]
         );
 
-        // @ts-ignore
+        // @ts-expect-error
         const courseId = result.insertId;
 
         const [newCourseRows] = await connection.execute(`
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest){
 
         await connection.end();
 
-        // @ts-ignore
+        // @ts-expect-error
         const newCourse = newCourseRows[0];
 
         return NextResponse.json({
