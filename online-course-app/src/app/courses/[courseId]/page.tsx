@@ -156,7 +156,7 @@ const CourseDetailPage = () => {
       <div className="min-h-screen p-4 bg-blue-50">
         <div className="bg-white p-8 rounded-lg shadow-lg max-w-3xl mx-auto">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">Course Not Found</h1>
-          <p className="text-gray-700 mb-6">The course you're looking for might have been removed or is unavailable.</p>
+          <p className="text-gray-700 mb-6">The course you&apos;re looking for might have been removed or is unavailable.</p>
           <button
             onClick={goBack}
             className="flex items-center text-primary hover:text-secondary"

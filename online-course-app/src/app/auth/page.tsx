@@ -472,7 +472,7 @@ const Auth = () => {
                                 setShowAdminCode(false);
                             }}
                         >
-                            {isLoginView ? "Don&apos;t have an account? Sign up" : "Already have an account? Sign in"}
+                            {isLoginView ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
                         </button>
                     </div>
                 )}

@@ -370,7 +370,7 @@ const TeacherDashboardPage = () => {
                         
                         {courses.length === 0 ? (
                             <div className="text-center py-8">
-                                <p className="text-gray-500 dark:text-gray-400">You haven't been assigned to any courses yet.</p>
+                                <p className="text-gray-500 dark:text-gray-400">You haven&apos;t been assigned to any courses yet.</p>
                             </div>
                         ) : (
                             <div className="space-y-3">

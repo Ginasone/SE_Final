@@ -394,7 +394,7 @@ const HelpCenterPage = () => {
                   Need More Help?
                 </h3>
                 <p className="text-gray-700 dark:text-gray-300 mb-4">
-                  Can't find what you're looking for? Our support team is here to help.
+                  Can&apos;t find what you&apos;re looking for? Our support team is here to help.
                 </p>
                 <Link href="/contact" className="block text-center bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded-md transition-colors duration-300">
                   Contact Support
@@ -422,7 +422,7 @@ const HelpCenterPage = () => {
                       Welcome to the Help Center
                     </h2>
                     <p className="text-gray-700 dark:text-gray-300 max-w-lg">
-                      Select a topic from the menu on the left to view detailed instructions and guidance. If you can't find what you need, don't hesitate to contact our support team.
+                      Select a topic from the menu on the left to view detailed instructions and guidance. If you can&apos;t find what you need, don&apos;t hesitate to contact our support team.
                     </p>
                   </div>
                 )}

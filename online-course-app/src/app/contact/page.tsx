@@ -66,7 +66,7 @@ const ContactPage = () => {
               Contact <span className="text-primary">Us</span>
             </h1>
             <p className="text-lg text-gray-700 dark:text-gray-300">
-              We'd love to hear from you. Reach out with any questions, suggestions, or inquiries.
+              We&apos;d love to hear from you. Reach out with any questions, suggestions, or inquiries.
             </p>
           </div>
         </div>

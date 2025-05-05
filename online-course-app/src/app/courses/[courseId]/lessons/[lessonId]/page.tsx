@@ -202,7 +202,7 @@ const LessonPage = ({
       <div className="min-h-screen flex flex-col items-center justify-center bg-blue-50 dark:bg-gray-900 p-4">
         <div className="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full text-center">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Lesson Not Found</h2>
-          <p className="text-gray-700 dark:text-gray-300 mb-6">The lesson you're looking for doesn't exist or you don't have access to it.</p>
+          <p className="text-gray-700 dark:text-gray-300 mb-6">The lesson you&apos;re looking for doesn't exist or you don't have access to it.</p>
           <button
             onClick={goToCourse}
             className="bg-primary hover:bg-secondary text-white font-bold py-2 px-4 rounded"
