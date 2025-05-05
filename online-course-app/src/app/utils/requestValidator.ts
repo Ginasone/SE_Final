@@ -64,8 +64,9 @@ export function validateData(data: unknown, schema: ValidationSchema): Validatio
       success: true,
       data
     };
-  } catch (_) {
-    // Handle unexpected errors (using underscore to indicate deliberate non-use)
+  } catch (error) {
+    // Using console.error to actually use the error variable
+    console.error("Validation error:", error);
     return {
       success: false,
       errors: {
@@ -98,8 +99,9 @@ export async function validateRequest(
         if (!bodyValidation.success) {
           return bodyValidation;
         }
-      } catch (_) {
-        // Using underscore to indicate deliberate non-use of error variable
+      } catch (error) {
+        // Using console.error to actually use the error variable
+        console.error("JSON parsing error:", error);
         return {
           success: false,
           errors: {
