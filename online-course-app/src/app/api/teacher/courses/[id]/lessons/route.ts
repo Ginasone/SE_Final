@@ -38,8 +38,12 @@ const getConnection = async () => {
 // GET: Fetch all lessons for a course
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
+    // Fixed: Access params via context
+    const { params } = context;
+    const courseId = params.id;
+    
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
         return NextResponse.json(
@@ -49,8 +53,6 @@ export async function GET(
     }
 
     try {
-        const courseId = params.id;
-        
         // Fetch the teacher ID from the database using the email in the token
         if (!teacher.email) {
             return NextResponse.json(
@@ -114,8 +116,12 @@ export async function GET(
 // POST: Create a new lesson
 export async function POST(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
+    // Fixed: Access params via context
+    const { params } = context;
+    const courseId = params.id;
+    
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
         return NextResponse.json(
@@ -125,7 +131,6 @@ export async function POST(
     }
 
     try {
-        const courseId = params.id;
         const body = await request.json();
         
         // Validate required fields

@@ -37,8 +37,12 @@ const getConnection = async () => {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
+    // Fixed: Access params via context
+    const { params } = context;
+    const courseId = params.id;
+    
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
         return NextResponse.json(
@@ -48,8 +52,6 @@ export async function GET(
     }
 
     try {
-        const courseId = params.id;
-        
         // Fetch the teacher ID from the database using the email in the token
         if (!teacher.email) {
             return NextResponse.json(
@@ -91,22 +93,37 @@ export async function GET(
         }
 
         // Get enrollments with student details
+        // This ensures only enrollments for this specific course are returned
         const [rows] = await connection.execute(`
-            SELECT e.id, e.course_id, e.student_id, e.enrolled_at,
-                u.full_name, u.email, u.status,
+            SELECT 
+                e.id, 
+                e.course_id, 
+                e.student_id, 
+                e.enrolled_at, 
+                e.status as enrollment_status,
+                u.full_name, 
+                u.email, 
+                u.status,
                 DATE_FORMAT(e.enrolled_at, '%Y-%m-%d') as joined_date
-            FROM enrollments e
-            JOIN users u ON e.student_id = u.id
-            WHERE e.course_id = ?
-            ORDER BY u.full_name ASC
+            FROM 
+                enrollments e
+            JOIN 
+                users u ON e.student_id = u.id
+            WHERE 
+                e.course_id = ?
+            ORDER BY 
+                u.full_name ASC
         `, [courseId]);
+
+        console.log(`Found ${Array.isArray(rows) ? rows.length : 0} enrollments for course ${courseId}`);
 
         // Format the response to include student objects
         const enrollments = Array.isArray(rows) ? rows.map((row: any) => ({
             id: row.id,
-            course_id: row.course_id,
+            course_id: parseInt(row.course_id),  // Ensure course_id is an integer
             student_id: row.student_id,
-            enrollment_date: row.enrollment_date,
+            enrolled_at: row.enrolled_at,
+            status: row.enrollment_status,
             student: {
                 id: row.student_id,
                 full_name: row.full_name,

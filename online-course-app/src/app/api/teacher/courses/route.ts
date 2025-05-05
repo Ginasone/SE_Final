@@ -17,9 +17,6 @@ const verifyTeacherToken = async (request: NextRequest) => {
         if (decoded.role !== 'teacher'){
             return null;
         }
-
-        // Log the token structure for debugging
-        console.log("Token payload:", JSON.stringify(decoded, null, 2));
         
         return decoded;
     }
@@ -74,20 +71,42 @@ export async function GET(request: NextRequest) {
         
         const teacherId = (teacherRows[0] as any).id;
 
-        // Fetch courses assigned to this teacher with school name and student count
+        // Fetch courses with accurate student counts using a subquery
+        // This ensures the student count is accurate for each course
         const [rows] = await connection.execute(`
-            SELECT c.*,
+            SELECT 
+                c.*,
                 s.name as school_name,
-                (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
-            FROM courses c
-            LEFT JOIN schools s ON c.school_id = s.id
-            WHERE c.teacher_id = ? AND c.status IN ('published', 'draft')
-            ORDER BY c.created_at DESC
-            `, [teacherId]);
+                (
+                    SELECT COUNT(*) 
+                    FROM enrollments ce 
+                    WHERE ce.course_id = c.id
+                ) as student_count
+            FROM 
+                courses c
+            LEFT JOIN 
+                schools s ON c.school_id = s.id
+            WHERE 
+                c.teacher_id = ? 
+            AND 
+                c.status IN ('published', 'draft')
+            ORDER BY 
+                c.created_at DESC
+        `, [teacherId]);
+
+        // Log the courses found for debugging
+        console.log(`Found ${Array.isArray(rows) ? rows.length : 0} courses for teacher ID ${teacherId}`);
+        
+        // Format each course to ensure course_id is properly set
+        const courses = Array.isArray(rows) ? rows.map((course: any) => ({
+            ...course,
+            id: parseInt(course.id),  // Ensure ID is an integer
+            student_count: parseInt(course.student_count || 0)  // Ensure count is an integer
+        })) : [];
 
         await connection.end();
 
-        return NextResponse.json({ courses: rows});
+        return NextResponse.json({ courses });
     }
     catch (error){
         console.error("Error fetching teacher courses:", error);

@@ -38,8 +38,12 @@ const getConnection = async () => {
 // PUT: Update a lesson
 export async function PUT(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
+    // Fixed: Access params via context
+    const { params } = context;
+    const lessonId = params.id;
+    
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
         return NextResponse.json(
@@ -49,7 +53,6 @@ export async function PUT(
     }
 
     try {
-        const lessonId = params.id;
         const body = await request.json();
         
         // Validate required fields
@@ -139,8 +142,12 @@ export async function PUT(
 // DELETE: Delete a lesson
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
+    // Fixed: Access params via context
+    const { params } = context;
+    const lessonId = params.id;
+    
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
         return NextResponse.json(
@@ -150,8 +157,6 @@ export async function DELETE(
     }
 
     try {
-        const lessonId = params.id;
-        
         // Fetch the teacher ID from the database using the email in the token
         if (!teacher.email) {
             return NextResponse.json(

@@ -118,6 +118,7 @@ const TeacherDashboardPage = () => {
             if (!selectedCourseId) return;
             
             try {
+                setError(''); // Clear any previous errors
                 const token = localStorage.getItem('user-token');
                 const response = await fetch(`/api/teacher/courses/${selectedCourseId}/enrollments`, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -128,6 +129,7 @@ const TeacherDashboardPage = () => {
                 }
                 
                 const data = await response.json();
+                console.log(`Fetched ${data.enrollments?.length || 0} enrollments for course ${selectedCourseId}`);
                 setEnrollments(data.enrollments || []);
             } catch (err) {
                 console.error('Error:', err);
