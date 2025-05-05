@@ -26,7 +26,7 @@ const StudentDashboard = () => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [_studentId, setStudentId] = useState<number | null>(null);
+    const [, setStudentId] = useState<number | null>(null);
     const [coursesCount, setCoursesCount] = useState(0);
 
     // Authentication check and data loading

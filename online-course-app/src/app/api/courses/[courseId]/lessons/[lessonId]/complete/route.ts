@@ -13,9 +13,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
 
 // Define only the interfaces we actually use
-interface ProgressRecord {
+interface ProgressRecord extends RowDataPacket {
   id: number;
   completed: boolean;
   completed_at?: string;
@@ -30,15 +31,16 @@ interface JwtUserPayload {
   schoolId?: number;
 }
 
-// For MySQL operations
-interface MySQLInsertResult {
-  insertId: number;
-  affectedRows: number;
+// For count query results
+interface CountQueryResult extends RowDataPacket {
+  count: number;
 }
 
-// For count query results
-interface CountQueryResult {
-  count: number;
+// Define RequestParams type for better clarity
+interface RequestParams {
+  courseId: string | number;
+  lessonId: string | number;
+  userId?: number;
 }
 
 /**
@@ -80,7 +82,7 @@ abstract class ApiRequestHandler {
   /**
    * Template method that defines the algorithm structure
    */
-  async handleRequest(req: NextRequest, params: any): Promise<NextResponse> {
+  async handleRequest(req: NextRequest, params: Record<string, string>): Promise<NextResponse> {
     // 1. Authenticate the request
     const authResult = await this.authenticate(req);
     if (!authResult.success) {
@@ -101,7 +103,7 @@ abstract class ApiRequestHandler {
 
     // 3. Process the business logic
     const processResult = await this.processRequest(
-      validationResult.params,
+      validationResult.params, // Now guaranteed to exist when success is true
       authResult.decoded
     );
 
@@ -117,26 +119,37 @@ abstract class ApiRequestHandler {
    */
   protected abstract authenticate(req: NextRequest): Promise<{
     success: boolean;
-    decoded?: JwtUserPayload; 
+    decoded?: JwtUserPayload;
     message?: string;
     statusCode?: number;
   }>;
 
   /**
    * Parameter validation step - to be implemented by concrete classes
+   * Using discriminated union types for better type safety
    */
-  protected abstract validateParams(params: any, decoded: JwtUserPayload | undefined): {
-    success: boolean;
-    params?: any;
+  protected abstract validateParams(
+    params: Record<string, string>, 
+    decoded: JwtUserPayload | undefined
+  ): {
+    success: true;
+    params: RequestParams; // No longer optional when success is true
     message?: string;
     statusCode?: number;
+  } | {
+    success: false;
+    message: string;
+    statusCode: number;
   };
 
   /**
    * Business logic processing step - to be implemented by concrete classes
    */
-  protected abstract processRequest(params: any, decoded: JwtUserPayload | undefined): Promise<{
-    data: any;
+  protected abstract processRequest(
+    params: RequestParams, 
+    decoded: JwtUserPayload | undefined
+  ): Promise<{
+    data: Record<string, unknown>;
     statusCode: number;
   }>;
 }
@@ -162,7 +175,7 @@ class ProgressRepository {
     lessonId: number
   ): Promise<boolean> {
     // Check if progress record already exists
-    const [existingProgressRows] = await connection.execute(
+    const [existingProgressRows] = await connection.execute<ProgressRecord[]>(
       `SELECT id, completed FROM user_progress 
        WHERE user_id = ? AND course_id = ? AND lesson_id = ?`,
       [userId, courseId, lessonId]
@@ -170,7 +183,7 @@ class ProgressRepository {
 
     if (Array.isArray(existingProgressRows) && existingProgressRows.length > 0) {
       // If record exists but not completed, update it
-      const progress = existingProgressRows[0] as ProgressRecord;
+      const progress = existingProgressRows[0];
       if (!progress.completed) {
         await connection.execute(
           `UPDATE user_progress 
@@ -204,7 +217,7 @@ class ProgressRepository {
     userId: number,
     courseId: number
   ): Promise<boolean> {
-    const [enrollments] = await connection.execute(
+    const [enrollments] = await connection.execute<CountQueryResult[]>(
       `SELECT COUNT(*) as count FROM enrollments 
        WHERE student_id = ? AND course_id = ? AND status = 'active'`,
       [userId, courseId]
@@ -212,7 +225,7 @@ class ProgressRepository {
 
     return Array.isArray(enrollments) && 
            enrollments.length > 0 && 
-           (enrollments[0] as CountQueryResult).count > 0;
+           enrollments[0].count > 0;
   }
 
   /**
@@ -228,7 +241,7 @@ class ProgressRepository {
     lessonId: number,
     courseId: number
   ): Promise<boolean> {
-    const [lessons] = await connection.execute(
+    const [lessons] = await connection.execute<CountQueryResult[]>(
       `SELECT COUNT(*) as count FROM lessons 
        WHERE id = ? AND course_id = ?`,
       [lessonId, courseId]
@@ -236,7 +249,7 @@ class ProgressRepository {
 
     return Array.isArray(lessons) && 
            lessons.length > 0 && 
-           (lessons[0] as CountQueryResult).count > 0;
+           lessons[0].count > 0;
   }
 }
 
@@ -387,12 +400,18 @@ class LessonCompletionHandler extends ApiRequestHandler {
   
   /**
    * Parameter validation step implementation
+   * Using discriminated union types for better type safety
    */
-  protected validateParams(params: any, decoded: JwtUserPayload | undefined): {
-    success: boolean;
-    params?: any;
-    message?: string;
-    statusCode?: number;
+  protected validateParams(
+    params: Record<string, string>, 
+    decoded: JwtUserPayload | undefined
+  ): {
+    success: true;
+    params: RequestParams;
+  } | {
+    success: false;
+    message: string;
+    statusCode: number;
   } {
     // Make sure decoded is not undefined
     if (!decoded) {
@@ -427,8 +446,11 @@ class LessonCompletionHandler extends ApiRequestHandler {
   /**
    * Business logic processing step implementation
    */
-  protected async processRequest(params: any, decoded: JwtUserPayload | undefined): Promise<{
-    data: any;
+  protected async processRequest(
+    params: RequestParams, 
+    decoded: JwtUserPayload | undefined
+  ): Promise<{
+    data: Record<string, unknown>;
     statusCode: number;
   }> {
     if (!decoded) {
@@ -437,7 +459,15 @@ class LessonCompletionHandler extends ApiRequestHandler {
         statusCode: 401
       };
     }
+
     const { userId, courseId, lessonId } = params;
+    
+    if (!userId) {
+      return {
+        data: { error: 'User ID is required' },
+        statusCode: 400
+      };
+    }
     
     // Validate enrollment and lesson existence
     const connection = await getConnection();
@@ -447,7 +477,7 @@ class LessonCompletionHandler extends ApiRequestHandler {
         const isEnrolled = await this.progressRepository.isUserEnrolledInCourse(
           connection, 
           userId, 
-          courseId
+          Number(courseId)
         );
         
         if (!isEnrolled) {
@@ -461,15 +491,15 @@ class LessonCompletionHandler extends ApiRequestHandler {
       // Check if lesson exists and belongs to course
       const isValidLesson = await this.progressRepository.isLessonValid(
         connection, 
-        lessonId, 
-        courseId
+        Number(lessonId), 
+        Number(courseId)
       );
       
       if (!isValidLesson) {
         return {
           data: { error: 'Lesson not found in this course' },
-          statusCode: 404
-        };
+            statusCode: 404
+          };
       }
     } finally {
       await connection.end();
@@ -477,7 +507,11 @@ class LessonCompletionHandler extends ApiRequestHandler {
     
     // Execute the command to mark lesson as complete
     try {
-      await this.command.execute(userId, courseId, lessonId);
+      await this.command.execute(
+        userId, 
+        Number(courseId), 
+        Number(lessonId)
+      );
       
       return {
         data: { 

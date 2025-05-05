@@ -44,14 +44,6 @@ interface HandlerParams {
   [key: string]: string | number | JwtPayload | undefined;
 }
 
-interface CountQueryResult {
-  count: number;
-}
-
-interface EnrollmentResult {
-  id: number;
-}
-
 /**
  * Database Connection Helper
  */

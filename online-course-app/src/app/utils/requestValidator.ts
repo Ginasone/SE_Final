@@ -64,8 +64,8 @@ export function validateData(data: unknown, schema: ValidationSchema): Validatio
       success: true,
       data
     };
-  } catch (err) {
-    // Handle unexpected errors
+  } catch (_) {
+    // Handle unexpected errors (using underscore to indicate deliberate non-use)
     return {
       success: false,
       errors: {
@@ -98,7 +98,8 @@ export async function validateRequest(
         if (!bodyValidation.success) {
           return bodyValidation;
         }
-      } catch (err) {
+      } catch (_) {
+        // Using underscore to indicate deliberate non-use of error variable
         return {
           success: false,
           errors: {
@@ -127,8 +128,9 @@ export async function validateRequest(
     
     // All validations passed
     return { success: true };
-  } catch (err) {
-    console.error('Error in request validation:', err);
+  } catch (error) {
+    // Using the error for logging, so it's not unused
+    console.error('Error in request validation:', error);
     
     return {
       success: false,
