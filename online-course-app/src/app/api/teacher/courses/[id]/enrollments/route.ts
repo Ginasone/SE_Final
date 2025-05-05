@@ -1,6 +1,40 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import { RowDataPacket } from "mysql2";
+
+// Define proper types for JWT payload
+interface TeacherJwtPayload {
+    userId: number;
+    email: string;
+    role: string;
+    name: string;
+    schoolId?: number;
+}
+
+// Define type for teacher row
+interface TeacherRow extends RowDataPacket {
+    id: number;
+}
+
+// Define type for course check
+interface CourseRow extends RowDataPacket {
+    id: number;
+    teacher_id: number;
+}
+
+// Define type for enrollment with student
+interface EnrollmentWithStudent extends RowDataPacket {
+    id: number;
+    course_id: number | string;
+    student_id: number;
+    enrolled_at: string;
+    enrollment_status: string;
+    full_name: string;
+    email: string;
+    status: string;
+    joined_date: string;
+}
 
 const verifyTeacherToken = async (request: NextRequest) => {
     const token = request.cookies.get('token')?.value ||
@@ -12,7 +46,7 @@ const verifyTeacherToken = async (request: NextRequest) => {
 
     try {
         const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-        const decoded = jwt.verify(token, secretKey) as jwt.JwtPayload;
+        const decoded = jwt.verify(token, secretKey) as TeacherJwtPayload;
 
         if (decoded.role !== 'teacher'){
             return null;
@@ -63,7 +97,7 @@ export async function GET(
         const connection = await getConnection();
         
         // First, get the teacher's ID from the database
-        const [teacherRows] = await connection.execute(
+        const [teacherRows] = await connection.execute<TeacherRow[]>(
             "SELECT id FROM users WHERE email = ? AND role = 'teacher'",
             [teacher.email]
         );
@@ -76,10 +110,10 @@ export async function GET(
             );
         }
         
-        const teacherId = (teacherRows[0] as any).id;
+        const teacherId = teacherRows[0].id;
 
         // Check if the teacher is assigned to this course
-        const [courseCheck] = await connection.execute(`
+        const [courseCheck] = await connection.execute<CourseRow[]>(`
             SELECT * FROM courses 
             WHERE id = ? AND teacher_id = ?
         `, [courseId, teacherId]);
@@ -94,7 +128,7 @@ export async function GET(
 
         // Get enrollments with student details
         // This ensures only enrollments for this specific course are returned
-        const [rows] = await connection.execute(`
+        const [rows] = await connection.execute<EnrollmentWithStudent[]>(`
             SELECT 
                 e.id, 
                 e.course_id, 
@@ -118,9 +152,9 @@ export async function GET(
         console.log(`Found ${Array.isArray(rows) ? rows.length : 0} enrollments for course ${courseId}`);
 
         // Format the response to include student objects
-        const enrollments = Array.isArray(rows) ? rows.map((row: any) => ({
+        const enrollments = Array.isArray(rows) ? rows.map((row) => ({
             id: row.id,
-            course_id: parseInt(row.course_id),  // Ensure course_id is an integer
+            course_id: typeof row.course_id === 'string' ? parseInt(row.course_id) : row.course_id,
             student_id: row.student_id,
             enrolled_at: row.enrolled_at,
             status: row.enrollment_status,

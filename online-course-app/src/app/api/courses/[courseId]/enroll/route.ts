@@ -169,7 +169,7 @@ export async function POST(
             warningStatus: number;
           }
 
-        const enrollmentId = (result as any).insertId;
+        const enrollmentId = (result as MySQLInsertResult).insertId;
         
         await connection.end();
 

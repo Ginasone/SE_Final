@@ -2,62 +2,69 @@
  * Request Validator Utility
  * 
  * Implements validation logic for API requests.
- * Uses the Strategy pattern to apply different validation rules
- * based on the validation schema provided.
+ * Uses the Strategy pattern to apply different validation rules.
  * 
  * @author Nadia
  * @version 1.0.0
  */
 
-import { z } from 'zod';
+// Define validator types
+type ValidationRule = (value: unknown) => boolean;
+type ValidationSchema = Record<string, ValidationRule>;
 
 /**
  * Validation result interface
  */
 export interface ValidationResult {
   success: boolean;
-  data?: any;
+  data?: unknown;
   errors?: Record<string, string[]>;
 }
 
 /**
- * Validate request object against a Zod schema
+ * Validate data against a schema
  * 
- * @param {any} data - The data to validate
- * @param {z.ZodType} schema - Zod schema to validate against
- * @returns {ValidationResult} Validation result with parsed data or errors
+ * @param {unknown} data - The data to validate
+ * @param {ValidationSchema} schema - Schema to validate against
+ * @returns {ValidationResult} Validation result with validated data or errors
  */
-export function validateData(data: any, schema: z.ZodType): ValidationResult {
+export function validateData(data: unknown, schema: ValidationSchema): ValidationResult {
   try {
-    // Attempt to parse and validate the data
-    const validatedData = schema.parse(data);
-    
-    return {
-      success: true,
-      data: validatedData
-    };
-  } catch (error) {
-    // Handle Zod validation errors
-    if (error instanceof z.ZodError) {
-      // Format error messages by field
-      const formattedErrors: Record<string, string[]> = {};
-      
-      error.errors.forEach((err) => {
-        const field = err.path.join('.');
-        
-        if (!formattedErrors[field]) {
-          formattedErrors[field] = [];
-        }
-        
-        formattedErrors[field].push(err.message);
-      });
-      
+    if (typeof data !== 'object' || data === null) {
       return {
         success: false,
-        errors: formattedErrors
+        errors: {
+          _general: ['Data must be an object']
+        }
+      };
+    }
+
+    const dataObj = data as Record<string, unknown>;
+    const errors: Record<string, string[]> = {};
+    
+    // Validate each field against its rule
+    for (const [field, rule] of Object.entries(schema)) {
+      if (!rule(dataObj[field])) {
+        if (!errors[field]) {
+          errors[field] = [];
+        }
+        errors[field].push(`Invalid value for ${field}`);
+      }
+    }
+    
+    // Check if any errors were found
+    if (Object.keys(errors).length > 0) {
+      return {
+        success: false,
+        errors
       };
     }
     
+    return {
+      success: true,
+      data
+    };
+  } catch (err) {
     // Handle unexpected errors
     return {
       success: false,
@@ -69,18 +76,17 @@ export function validateData(data: any, schema: z.ZodType): ValidationResult {
 }
 
 /**
- * Validate complete HTTP request against a schema
- * This is a higher-level wrapper for validateData, specifically for Request objects
+ * Validate complete HTTP request
  * 
  * @param {Request} req - The HTTP request
- * @param {z.ZodType} bodySchema - Schema for the request body
- * @param {z.ZodType} querySchema - Optional schema for query parameters
+ * @param {ValidationSchema} bodySchema - Schema for the request body
+ * @param {ValidationSchema} querySchema - Optional schema for query parameters
  * @returns {Promise<ValidationResult>} Validation result
  */
 export async function validateRequest(
   req: Request,
-  bodySchema?: z.ZodType,
-  querySchema?: z.ZodType
+  bodySchema?: ValidationSchema,
+  querySchema?: ValidationSchema
 ): Promise<ValidationResult> {
   try {
     // Validate body if schema provided
@@ -92,7 +98,7 @@ export async function validateRequest(
         if (!bodyValidation.success) {
           return bodyValidation;
         }
-      } catch (error) {
+      } catch (err) {
         return {
           success: false,
           errors: {
@@ -121,8 +127,8 @@ export async function validateRequest(
     
     // All validations passed
     return { success: true };
-  } catch (error) {
-    console.error('Error in request validation:', error);
+  } catch (err) {
+    console.error('Error in request validation:', err);
     
     return {
       success: false,
@@ -133,12 +139,24 @@ export async function validateRequest(
   }
 }
 
-// Export common validation schemas
-export const Schemas = {
-  id: z.number().int().positive(),
-  email: z.string().email(),
-  password: z.string().min(8),
-  studentId: z.number().int().positive(),
-  limit: z.number().int().min(1).max(50).default(10),
-  notificationId: z.number().int().positive()
+// Basic validation rules
+export const Validators = {
+  isRequired: (value: unknown): boolean => value !== undefined && value !== null && value !== '',
+  isEmail: (value: unknown): boolean => {
+    if (typeof value !== 'string') return false;
+    // Simple email validation regex
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  },
+  isNumber: (value: unknown): boolean => typeof value === 'number' && !isNaN(value),
+  isString: (value: unknown): boolean => typeof value === 'string',
+  minLength: (min: number) => (value: unknown): boolean => 
+    typeof value === 'string' && value.length >= min,
+  maxLength: (max: number) => (value: unknown): boolean => 
+    typeof value === 'string' && value.length <= max,
+  isInt: (value: unknown): boolean => 
+    typeof value === 'number' && Number.isInteger(value),
+  min: (min: number) => (value: unknown): boolean => 
+    typeof value === 'number' && value >= min,
+  max: (max: number) => (value: unknown): boolean => 
+    typeof value === 'number' && value <= max
 };

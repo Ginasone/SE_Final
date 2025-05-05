@@ -47,11 +47,11 @@ class DatabaseConnection {
    * Execute a SQL query with optional parameters
    * 
    * @param {string} sql - SQL query to execute
-   * @param {any[]} params - Array of parameters to bind to the query
-   * @returns {Promise<any>} Query results
+   * @param {Array<unknown>} params - Array of parameters to bind to the query
+   * @returns {Promise<unknown>} Query results
    * @throws {Error} Database errors will be thrown up to caller
    */
-  public async query(sql: string, params: any[] = []): Promise<any> {
+  public async query(sql: string, params: Array<unknown> = []): Promise<unknown> {
     try {
       // Destructuring to get only results, not metadata
       const [results] = await this.pool.execute(sql, params);
@@ -64,7 +64,7 @@ class DatabaseConnection {
 }
 
 // Export a singleton instance method for query execution
-export const query = async (sql: string, params: any[] = []): Promise<any> => {
+export const query = async (sql: string, params: Array<unknown> = []): Promise<unknown> => {
   return DatabaseConnection.getInstance().query(sql, params);
 };
 

@@ -1,6 +1,44 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
+
+// Define proper types for JWT payload
+interface TeacherJwtPayload {
+    userId: number;
+    email: string;
+    role: string;
+    name: string;
+    schoolId?: number;
+}
+
+// Define type for teacher row
+interface TeacherRow extends RowDataPacket {
+    id: number;
+}
+
+// Define type for course check
+interface CourseRow extends RowDataPacket {
+    id: number;
+    teacher_id: number;
+}
+
+// Define type for lesson
+interface Lesson extends RowDataPacket {
+    id: number;
+    course_id: number;
+    title: string;
+    content: string | null;
+    video_url: string | null;
+    position: number;
+    created_at: string;
+    updated_at: string;
+}
+
+// Define type for insert result
+interface InsertResult extends ResultSetHeader {
+    insertId: number;
+}
 
 const verifyTeacherToken = async (request: NextRequest) => {
     const token = request.cookies.get('token')?.value ||
@@ -12,7 +50,7 @@ const verifyTeacherToken = async (request: NextRequest) => {
 
     try {
         const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-        const decoded = jwt.verify(token, secretKey) as jwt.JwtPayload;
+        const decoded = jwt.verify(token, secretKey) as TeacherJwtPayload;
 
         if (decoded.role !== 'teacher'){
             return null;
@@ -64,7 +102,7 @@ export async function GET(
         const connection = await getConnection();
         
         // First, get the teacher's ID from the database
-        const [teacherRows] = await connection.execute(
+        const [teacherRows] = await connection.execute<TeacherRow[]>(
             "SELECT id FROM users WHERE email = ? AND role = 'teacher'",
             [teacher.email]
         );
@@ -77,10 +115,10 @@ export async function GET(
             );
         }
         
-        const teacherId = (teacherRows[0] as any).id;
+        const teacherId = teacherRows[0].id;
 
         // Check if the teacher is assigned to this course
-        const [courseCheck] = await connection.execute(`
+        const [courseCheck] = await connection.execute<CourseRow[]>(`
             SELECT * FROM courses 
             WHERE id = ? AND teacher_id = ?
         `, [courseId, teacherId]);
@@ -94,7 +132,7 @@ export async function GET(
         }
 
         // Get lessons for the course
-        const [rows] = await connection.execute(`
+        const [rows] = await connection.execute<Lesson[]>(`
             SELECT * FROM lessons
             WHERE course_id = ?
             ORDER BY position ASC
@@ -152,7 +190,7 @@ export async function POST(
         const connection = await getConnection();
         
         // Get the teacher's ID from the database
-        const [teacherRows] = await connection.execute(
+        const [teacherRows] = await connection.execute<TeacherRow[]>(
             "SELECT id FROM users WHERE email = ? AND role = 'teacher'",
             [teacher.email]
         );
@@ -165,10 +203,10 @@ export async function POST(
             );
         }
         
-        const teacherId = (teacherRows[0] as any).id;
+        const teacherId = teacherRows[0].id;
 
         // Check if the teacher is assigned to this course
-        const [courseCheck] = await connection.execute(`
+        const [courseCheck] = await connection.execute<CourseRow[]>(`
             SELECT * FROM courses 
             WHERE id = ? AND teacher_id = ?
         `, [courseId, teacherId]);
@@ -182,7 +220,7 @@ export async function POST(
         }
 
         // Insert the new lesson
-        const [result] = await connection.execute(`
+        const [result] = await connection.execute<InsertResult>(`
             INSERT INTO lessons (course_id, title, content, video_url, position, created_at)
             VALUES (?, ?, ?, ?, ?, NOW())
         `, [
@@ -194,15 +232,15 @@ export async function POST(
         ]);
 
         // Fetch the newly created lesson
-        const [lessonRows] = await connection.execute(`
+        const [lessonRows] = await connection.execute<Lesson[]>(`
             SELECT * FROM lessons WHERE id = ?
-        `, [(result as any).insertId]);
+        `, [result.insertId]);
 
         await connection.end();
 
         return NextResponse.json({
             message: "Lesson created successfully",
-            lesson: (lessonRows as any[])[0]
+            lesson: lessonRows[0]
         }, { status: 201 });
     }
     catch (error){

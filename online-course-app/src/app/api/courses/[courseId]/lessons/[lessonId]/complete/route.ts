@@ -14,43 +14,14 @@ import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 
-// Database result interfaces
-interface MySQLQueryResult {
-  fieldCount: number;
-  affectedRows: number;
-  insertId: number;
-  serverStatus: number;
-  warningStatus: number;
-  info: string;
-}
-
-// For user progress records
+// Define only the interfaces we actually use
 interface ProgressRecord {
   id: number;
   completed: boolean;
   completed_at?: string;
 }
 
-// For enrollment records
-interface EnrollmentRecord {
-  id: number;
-  status: string;
-}
-
-// For lesson records
-interface LessonRecord {
-  id: number;
-  course_id: number;
-  title: string;
-  content?: string;
-}
-
-// For count results
-interface CountResult {
-  count: number;
-}
-
-// For decoded JWT payload
+// For JWT payload
 interface JwtUserPayload {
   userId: number;
   email: string;
@@ -59,11 +30,15 @@ interface JwtUserPayload {
   schoolId?: number;
 }
 
-// For progress notification
-interface ProgressNotification {
-  userId: number;
-  courseId: number;
-  message: string;
+// For MySQL operations
+interface MySQLInsertResult {
+  insertId: number;
+  affectedRows: number;
+}
+
+// For count query results
+interface CountQueryResult {
+  count: number;
 }
 
 /**
@@ -90,9 +65,9 @@ function verifyToken(authorization: string | null) {
   
   try {
     const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-    return jwt.verify(token, secretKey) as jwt.JwtPayload;
-  } catch (error) {
-    console.error('Token verification error:', error);
+    return jwt.verify(token, secretKey) as JwtUserPayload;
+  } catch (err) {
+    console.error('Token verification error:', err);
     return null;
   }
 }
@@ -142,7 +117,7 @@ abstract class ApiRequestHandler {
    */
   protected abstract authenticate(req: NextRequest): Promise<{
     success: boolean;
-    decoded?: JwtUserPayload;
+    decoded?: JwtUserPayload; 
     message?: string;
     statusCode?: number;
   }>;
@@ -150,7 +125,7 @@ abstract class ApiRequestHandler {
   /**
    * Parameter validation step - to be implemented by concrete classes
    */
-  protected abstract validateParams(params: any, decoded: any): {
+  protected abstract validateParams(params: any, decoded: JwtUserPayload | undefined): {
     success: boolean;
     params?: any;
     message?: string;
@@ -160,7 +135,7 @@ abstract class ApiRequestHandler {
   /**
    * Business logic processing step - to be implemented by concrete classes
    */
-  protected abstract processRequest(params: any, decoded: any): Promise<{
+  protected abstract processRequest(params: any, decoded: JwtUserPayload | undefined): Promise<{
     data: any;
     statusCode: number;
   }>;
@@ -187,20 +162,21 @@ class ProgressRepository {
     lessonId: number
   ): Promise<boolean> {
     // Check if progress record already exists
-    const [existingProgress] = await connection.execute(
+    const [existingProgressRows] = await connection.execute(
       `SELECT id, completed FROM user_progress 
        WHERE user_id = ? AND course_id = ? AND lesson_id = ?`,
       [userId, courseId, lessonId]
     );
 
-    if (Array.isArray(existingProgress) && existingProgress.length > 0) {
+    if (Array.isArray(existingProgressRows) && existingProgressRows.length > 0) {
       // If record exists but not completed, update it
-      if (!(existingProgress[0] as ProgressRecord).completed) {
+      const progress = existingProgressRows[0] as ProgressRecord;
+      if (!progress.completed) {
         await connection.execute(
           `UPDATE user_progress 
            SET completed = 1, completed_at = NOW() 
            WHERE id = ?`,
-          [(existingProgress[0] as ProgressRecord).id]
+          [progress.id]
         );
       }
     } else {
@@ -229,12 +205,14 @@ class ProgressRepository {
     courseId: number
   ): Promise<boolean> {
     const [enrollments] = await connection.execute(
-      `SELECT id FROM enrollments 
+      `SELECT COUNT(*) as count FROM enrollments 
        WHERE student_id = ? AND course_id = ? AND status = 'active'`,
       [userId, courseId]
     );
 
-    return Array.isArray(enrollments) && enrollments.length > 0;
+    return Array.isArray(enrollments) && 
+           enrollments.length > 0 && 
+           (enrollments[0] as CountQueryResult).count > 0;
   }
 
   /**
@@ -251,12 +229,14 @@ class ProgressRepository {
     courseId: number
   ): Promise<boolean> {
     const [lessons] = await connection.execute(
-      `SELECT id FROM lessons 
+      `SELECT COUNT(*) as count FROM lessons 
        WHERE id = ? AND course_id = ?`,
       [lessonId, courseId]
     );
 
-    return Array.isArray(lessons) && lessons.length > 0;
+    return Array.isArray(lessons) && 
+           lessons.length > 0 && 
+           (lessons[0] as CountQueryResult).count > 0;
   }
 }
 
@@ -282,8 +262,8 @@ class ProgressObserver {
       
       // Calculate and update overall course progress (optional)
       await this.updateCourseProgress(connection, userId, courseId);
-    } catch (error) {
-      console.error('Error in progress notification:', error);
+    } catch (err) {
+      console.error('Error in progress notification:', err);
       // Continue execution even if notification fails
     }
   }
@@ -299,8 +279,8 @@ class ProgressObserver {
       
       // For now, we'll just log a message
       console.log(`Updated progress for user ${userId} in course ${courseId}`);
-    } catch (error) {
-      console.error('Error updating course progress:', error);
+    } catch (err) {
+      console.error('Error updating course progress:', err);
     }
   }
 }
@@ -346,11 +326,11 @@ class MarkLessonCompleteCommand {
       await connection.commit();
       
       return true;
-    } catch (error) {
+    } catch (err) {
       // Rollback on error
       await connection.rollback();
-      console.error('Error executing mark lesson complete command:', error);
-      throw error;
+      console.error('Error executing mark lesson complete command:', err);
+      throw err;
     } finally {
       await connection.end();
     }
@@ -375,7 +355,7 @@ class LessonCompletionHandler extends ApiRequestHandler {
    */
   protected async authenticate(req: NextRequest): Promise<{
     success: boolean;
-    decoded?: any;
+    decoded?: JwtUserPayload;
     message?: string;
     statusCode?: number;
   }> {
@@ -408,12 +388,21 @@ class LessonCompletionHandler extends ApiRequestHandler {
   /**
    * Parameter validation step implementation
    */
-  protected validateParams(params: any, decoded: any): {
+  protected validateParams(params: any, decoded: JwtUserPayload | undefined): {
     success: boolean;
     params?: any;
     message?: string;
     statusCode?: number;
   } {
+    // Make sure decoded is not undefined
+    if (!decoded) {
+      return {
+        success: false,
+        message: 'Authentication required',
+        statusCode: 401
+      };
+    }
+  
     const courseId = Number(params.courseId);
     const lessonId = Number(params.lessonId);
     
@@ -438,10 +427,16 @@ class LessonCompletionHandler extends ApiRequestHandler {
   /**
    * Business logic processing step implementation
    */
-  protected async processRequest(params: any, decoded: any): Promise<{
+  protected async processRequest(params: any, decoded: JwtUserPayload | undefined): Promise<{
     data: any;
     statusCode: number;
   }> {
+    if (!decoded) {
+      return {
+        data: { error: 'Authentication required' },
+        statusCode: 401
+      };
+    }
     const { userId, courseId, lessonId } = params;
     
     // Validate enrollment and lesson existence
@@ -449,11 +444,11 @@ class LessonCompletionHandler extends ApiRequestHandler {
     try {
       // Check enrollment (unless admin)
       if (decoded.role !== 'admin') {
-        const isEnrolled = (await this.progressRepository.isUserEnrolledInCourse(
+        const isEnrolled = await this.progressRepository.isUserEnrolledInCourse(
           connection, 
           userId, 
           courseId
-        )) as boolean;
+        );
         
         if (!isEnrolled) {
           return {
@@ -464,11 +459,11 @@ class LessonCompletionHandler extends ApiRequestHandler {
       }
       
       // Check if lesson exists and belongs to course
-      const isValidLesson = (await this.progressRepository.isLessonValid(
+      const isValidLesson = await this.progressRepository.isLessonValid(
         connection, 
         lessonId, 
         courseId
-      )) as boolean;
+      );
       
       if (!isValidLesson) {
         return {
@@ -491,8 +486,8 @@ class LessonCompletionHandler extends ApiRequestHandler {
         },
         statusCode: 200
       };
-    } catch (error) {
-      console.error('Error processing lesson completion:', error);
+    } catch (err) {
+      console.error('Error processing lesson completion:', err);
       return {
         data: { 
           error: 'Failed to mark lesson as completed'

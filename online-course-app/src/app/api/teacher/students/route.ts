@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import { RowDataPacket } from "mysql2";
+
+// Define proper types for JWT payload
+interface TeacherJwtPayload {
+    userId: number;
+    email: string;
+    role: string;
+    name: string;
+    schoolId?: number;
+}
+
+// Define type for teacher row
+interface TeacherRow extends RowDataPacket {
+    id: number;
+}
+
+// Define type for student
+interface Student extends RowDataPacket {
+    id: number;
+    full_name: string;
+    email: string;
+    status: string;
+    enrollment_date: string;
+    course_title: string;
+    course_id: number;
+    school_name: string;
+}
 
 const verifyTeacherToken = async (request: NextRequest) => {
     const token = request.cookies.get('token')?.value ||
@@ -12,7 +39,7 @@ const verifyTeacherToken = async (request: NextRequest) => {
 
     try {
         const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-        const decoded = jwt.verify(token, secretKey) as jwt.JwtPayload;
+        const decoded = jwt.verify(token, secretKey) as TeacherJwtPayload;
 
         if (decoded.role !== 'teacher'){
             return null;
@@ -56,7 +83,7 @@ export async function GET(request: NextRequest) {
         const connection = await getConnection();
         
         // First, get the teacher's ID from the database
-        const [teacherRows] = await connection.execute(
+        const [teacherRows] = await connection.execute<TeacherRow[]>(
             "SELECT id FROM users WHERE email = ? AND role = 'teacher'",
             [teacher.email]
         );
@@ -69,10 +96,10 @@ export async function GET(request: NextRequest) {
             );
         }
         
-        const teacherId = (teacherRows[0] as any).id;
+        const teacherId = teacherRows[0].id;
 
         // Get all students enrolled in courses taught by this teacher
-        const [rows] = await connection.execute(`
+        const [rows] = await connection.execute<Student[]>(`
             SELECT DISTINCT 
                 u.id, 
                 u.full_name, 

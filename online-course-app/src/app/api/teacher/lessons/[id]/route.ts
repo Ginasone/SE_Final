@@ -1,6 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
+
+// Define proper types for JWT payload
+interface TeacherJwtPayload {
+    userId: number;
+    email: string;
+    role: string;
+    name: string;
+    schoolId?: number;
+}
+
+// Define type for teacher row
+interface TeacherRow extends RowDataPacket {
+    id: number;
+}
+
+// Define type for lesson
+interface Lesson extends RowDataPacket {
+    id: number;
+    course_id: number;
+    title: string;
+    content: string | null;
+    video_url: string | null;
+    position: number;
+    created_at: string;
+    updated_at: string;
+}
 
 const verifyTeacherToken = async (request: NextRequest) => {
     const token = request.cookies.get('token')?.value ||
@@ -12,7 +39,7 @@ const verifyTeacherToken = async (request: NextRequest) => {
 
     try {
         const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-        const decoded = jwt.verify(token, secretKey) as jwt.JwtPayload;
+        const decoded = jwt.verify(token, secretKey) as TeacherJwtPayload;
 
         if (decoded.role !== 'teacher'){
             return null;
@@ -74,7 +101,7 @@ export async function PUT(
         const connection = await getConnection();
         
         // Get the teacher's ID from the database
-        const [teacherRows] = await connection.execute(
+        const [teacherRows] = await connection.execute<TeacherRow[]>(
             "SELECT id FROM users WHERE email = ? AND role = 'teacher'",
             [teacher.email]
         );
@@ -87,10 +114,10 @@ export async function PUT(
             );
         }
         
-        const teacherId = (teacherRows[0] as any).id;
+        const teacherId = teacherRows[0].id;
 
         // Check if the lesson exists and belongs to a course taught by this teacher
-        const [lessonCheck] = await connection.execute(`
+        const [lessonCheck] = await connection.execute<Lesson[]>(`
             SELECT l.* 
             FROM lessons l
             JOIN courses c ON l.course_id = c.id
@@ -119,7 +146,7 @@ export async function PUT(
         ]);
 
         // Fetch the updated lesson
-        const [updatedRows] = await connection.execute(`
+        const [updatedRows] = await connection.execute<Lesson[]>(`
             SELECT * FROM lessons WHERE id = ?
         `, [lessonId]);
 
@@ -127,7 +154,7 @@ export async function PUT(
 
         return NextResponse.json({
             message: "Lesson updated successfully",
-            lesson: (updatedRows as any[])[0]
+            lesson: updatedRows[0]
         });
     }
     catch (error){
@@ -168,7 +195,7 @@ export async function DELETE(
         const connection = await getConnection();
         
         // Get the teacher's ID from the database
-        const [teacherRows] = await connection.execute(
+        const [teacherRows] = await connection.execute<TeacherRow[]>(
             "SELECT id FROM users WHERE email = ? AND role = 'teacher'",
             [teacher.email]
         );
@@ -181,10 +208,10 @@ export async function DELETE(
             );
         }
         
-        const teacherId = (teacherRows[0] as any).id;
+        const teacherId = teacherRows[0].id;
 
         // Check if the lesson exists and belongs to a course taught by this teacher
-        const [lessonCheck] = await connection.execute(`
+        const [lessonCheck] = await connection.execute<Lesson[]>(`
             SELECT l.* 
             FROM lessons l
             JOIN courses c ON l.course_id = c.id

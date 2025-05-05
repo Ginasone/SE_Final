@@ -14,6 +14,44 @@ import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 
+// Define interfaces for type safety
+interface NavigationResult {
+  prevLessonId: number | null;
+  nextLessonId: number | null;
+}
+
+interface LessonPosition {
+  position: number;
+}
+
+interface LessonId {
+  id: number;
+}
+
+interface JwtPayload {
+  userId: number;
+  email: string;
+  role: 'student' | 'teacher' | 'admin';
+  name: string;
+  schoolId?: number;
+}
+
+// Create a specific interface for the handler parameters
+interface HandlerParams {
+  courseId: string | number;
+  lessonId: string | number;
+  decoded?: JwtPayload;
+  [key: string]: string | number | JwtPayload | undefined;
+}
+
+interface CountQueryResult {
+  count: number;
+}
+
+interface EnrollmentResult {
+  id: number;
+}
+
 /**
  * Database Connection Helper
  */
@@ -30,7 +68,7 @@ async function getConnection() {
  * Interface for Chain of Responsibility handlers
  */
 interface RequestHandler {
-  process(req: NextRequest, params: any): Promise<NextResponse>;
+  process(req: NextRequest, params: HandlerParams): Promise<NextResponse>;
   setNext(handler: RequestHandler): RequestHandler;
 }
 
@@ -46,7 +84,7 @@ class AuthHandler implements RequestHandler {
     return handler;
   }
 
-  async process(req: NextRequest, params: any): Promise<NextResponse> {
+  async process(req: NextRequest, params: HandlerParams): Promise<NextResponse> {
     // Verify authentication
     const authHeader = req.headers.get('authorization');
     const decoded = this.verifyToken(authHeader);
@@ -60,13 +98,16 @@ class AuthHandler implements RequestHandler {
 
     // Pass to next handler with auth data
     if (this.nextHandler) {
-      return this.nextHandler.process(req, { ...params, decoded });
+      return this.nextHandler.process(req, { 
+        ...params, 
+        decoded
+      });
     }
 
     return NextResponse.json({});
   }
 
-  private verifyToken(authorization: string | null) {
+  private verifyToken(authorization: string | null): JwtPayload | null {
     if (!authorization || !authorization.startsWith('Bearer ')) {
       return null;
     }
@@ -75,7 +116,7 @@ class AuthHandler implements RequestHandler {
     
     try {
       const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-      return jwt.verify(token, secretKey) as jwt.JwtPayload;
+      return jwt.verify(token, secretKey) as JwtPayload;
     } catch (error) {
       console.error('Token verification error:', error);
       return null;
@@ -95,10 +136,11 @@ class ValidationHandler implements RequestHandler {
     return handler;
   }
 
-  async process(req: NextRequest, params: any): Promise<NextResponse> {
-    const { courseId, lessonId } = params;
+  async process(req: NextRequest, params: HandlerParams): Promise<NextResponse> {
+    const courseId = Number(params.courseId);
+    const lessonId = Number(params.lessonId);
     
-    if (isNaN(Number(courseId)) || isNaN(Number(lessonId))) {
+    if (isNaN(courseId) || isNaN(lessonId)) {
       return NextResponse.json(
         { error: 'Valid course and lesson IDs are required' },
         { status: 400 }
@@ -109,8 +151,8 @@ class ValidationHandler implements RequestHandler {
     if (this.nextHandler) {
       return this.nextHandler.process(req, { 
         ...params, 
-        courseId: Number(courseId), 
-        lessonId: Number(lessonId) 
+        courseId: courseId, 
+        lessonId: lessonId 
       });
     }
 
@@ -130,8 +172,9 @@ class AccessCheckHandler implements RequestHandler {
     return handler;
   }
 
-  async process(req: NextRequest, params: any): Promise<NextResponse> {
-    const { decoded, courseId } = params;
+  async process(req: NextRequest, params: HandlerParams): Promise<NextResponse> {
+    const decoded = params.decoded as JwtPayload;
+    const courseId = Number(params.courseId);
 
     // Admin has access to everything
     if (decoded.role === 'admin') {
@@ -181,27 +224,25 @@ class NavigationRepository {
    * @param lessonId Current Lesson ID
    * @returns Navigation information with prev/next lesson IDs
    */
-  async getNavigation(courseId: number, lessonId: number): Promise<{ 
-    prevLessonId: number | null; 
-    nextLessonId: number | null; 
-  }> {
+  async getNavigation(courseId: number, lessonId: number): Promise<NavigationResult> {
     const connection = await getConnection();
     
     try {
       // Get current lesson position
-      const [currentLesson] = await connection.execute(
+      const [currentLessonResult] = await connection.execute(
         `SELECT position FROM lessons WHERE id = ? AND course_id = ?`,
         [lessonId, courseId]
       );
 
-      if (!Array.isArray(currentLesson) || currentLesson.length === 0) {
+      const currentLessons = currentLessonResult as LessonPosition[];
+      if (!Array.isArray(currentLessons) || currentLessons.length === 0) {
         return { prevLessonId: null, nextLessonId: null };
       }
 
-      const currentPosition = (currentLesson[0] as any).position;
+      const currentPosition = currentLessons[0].position;
 
       // Get previous lesson
-      const [prevLesson] = await connection.execute(
+      const [prevLessonResult] = await connection.execute(
         `SELECT id FROM lessons 
          WHERE course_id = ? AND position < ? 
          ORDER BY position DESC 
@@ -210,7 +251,7 @@ class NavigationRepository {
       );
 
       // Get next lesson
-      const [nextLesson] = await connection.execute(
+      const [nextLessonResult] = await connection.execute(
         `SELECT id FROM lessons 
          WHERE course_id = ? AND position > ? 
          ORDER BY position ASC 
@@ -218,12 +259,15 @@ class NavigationRepository {
         [courseId, currentPosition]
       );
 
+      const prevLessons = prevLessonResult as LessonId[];
+      const nextLessons = nextLessonResult as LessonId[];
+
       return {
-        prevLessonId: Array.isArray(prevLesson) && prevLesson.length > 0 
-          ? (prevLesson[0] as any).id 
+        prevLessonId: Array.isArray(prevLessons) && prevLessons.length > 0 
+          ? prevLessons[0].id 
           : null,
-        nextLessonId: Array.isArray(nextLesson) && nextLesson.length > 0 
-          ? (nextLesson[0] as any).id 
+        nextLessonId: Array.isArray(nextLessons) && nextLessons.length > 0 
+          ? nextLessons[0].id 
           : null
       };
     } finally {
@@ -249,8 +293,9 @@ class NavigationHandler implements RequestHandler {
     return handler;
   }
 
-  async process(req: NextRequest, params: any): Promise<NextResponse> {
-    const { courseId, lessonId } = params;
+  async process(req: NextRequest, params: HandlerParams): Promise<NextResponse> {
+    const courseId = Number(params.courseId);
+    const lessonId = Number(params.lessonId);
     
     try {
       const navigationData = await this.navigationRepository.getNavigation(
@@ -295,8 +340,13 @@ export async function GET(
       .setNext(accessCheckHandler)
       .setNext(navigationHandler);
 
-    // Start processing the request
-    return await authHandler.process(req, params);
+    // Start processing the request with initial params
+    const initialParams: HandlerParams = {
+      courseId: params.courseId,
+      lessonId: params.lessonId
+    };
+    
+    return await authHandler.process(req, initialParams);
   } catch (error) {
     console.error('Error in lesson navigation API route:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

@@ -128,12 +128,11 @@ export function handleApiError(error: unknown, includeStack: boolean = false): N
  * @param {unknown} error - The error to log
  * @param {Record<string, any>} context - Additional context information
  */
-export function logError(error: unknown, context: Record<string, any> = {}): void {
+export function logError(error: unknown, context: Record<string, unknown> = {}): void {
   // Basic console logging for development
   console.error('Error:', {
     error,
     context,
     timestamp: new Date().toISOString()
   });
-  
 }
