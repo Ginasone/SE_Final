@@ -21,6 +21,7 @@ const verifyAdminToken = async (request: NextRequest) => {
         return decoded;
     }
     catch (error) {
+        console.error("Error in operation:", error);
         return null;
     }
 };
@@ -242,7 +243,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         await connection.end();
 
-        //@ts-expect-error
+        //@ts-expect-error - Type definition for query result is not exact but we know the structure
         const updatedCourse = updatedCourseRows[0];
 
         return NextResponse.json({
@@ -291,7 +292,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             [courseId]
         );
 
-        // @ts-expect-error
+        // @ts-expect-error - MySQL result type is not properly typed but we know count exists
         if (enrollments[0].count > 0){
             await connection.end();
             return NextResponse.json(

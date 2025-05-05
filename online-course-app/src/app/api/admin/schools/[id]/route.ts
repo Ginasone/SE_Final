@@ -21,6 +21,7 @@ const verifyAdminToken = async (request: NextRequest) => {
         return decoded;
     }
     catch (error) {
+        console.error("Error in operation:", error);
         return null;
     }
 };
@@ -168,7 +169,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         await connection.end();
 
-        //@ts-expect-error
+        //@ts-expect-error - MySQL result row type is not properly defined but structure is known
         const updatedSchool = updatedRows[0];
 
         return NextResponse.json({
@@ -217,7 +218,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             [schoolId]
         );
 
-        //@ts-expect-error
+        //@ts-expect-error - MySQL COUNT result type is not properly typed but count property exists
         if (associatedUsers[0].count > 0){
             await connection.end();
             return NextResponse.json(
@@ -231,7 +232,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
             [schoolId]
         );
 
-        // @ts-expect-error
+        // @ts-expect-error - MySQL COUNT query result lacks proper typing but count exists
         if (associatedCourses[0].count > 0){
             await connection.end();
             return NextResponse.json(

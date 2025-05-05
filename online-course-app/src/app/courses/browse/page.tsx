@@ -37,6 +37,7 @@ const BrowseCoursesPage = () => {
   // Fetch available courses on component mount
   useEffect(() => {
     fetchAvailableCourses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Fetch available courses that student can enroll in

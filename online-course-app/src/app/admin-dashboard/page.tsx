@@ -133,6 +133,7 @@ export default function AdminDashboardPage() {
             );
             console.log(`Filtered teachers for school ${courseForm.school_id}:`, teachersForSchool);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [ router, isAuthorized]);
 
     const fetchSchools = async () => {
@@ -406,7 +407,7 @@ export default function AdminDashboardPage() {
                 ...((!isUserEditMode || isResetPassword) ? { password: userForm.password } : {})
             };
 
-            const { confirmPassword, ...dataToSend } = userData;
+            const { confirmPassword:_, ...dataToSend } = userData;
 
             const url = isUserEditMode
             ? `/api/admin/users/${userForm.id}`

@@ -66,10 +66,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
             );
         }
 
-        //@ts-ignore
-        const user = rows[0];
+        interface UserRow {
+            id: number;
+            full_name: string;
+            email: string;
+            role: 'student' | 'teacher' | 'admin';
+            school_id: number | null;
+            school_name?: string;
+            status: 'active' | 'inactive';
+            created_at: string;
+          }
+        const user = rows[0] as UserRow;
 
-        //@ts-ignore
+        //@ts-expect-error
         delete user.password_hash;
 
         return NextResponse.json({
@@ -176,10 +185,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
         await connection.end();
 
-        //@ts-ignore
+        //@ts-expect-error
         const updatedUser = updated[0];
 
-        //@ts-ignore
         delete updatedUser.password_hash;
 
         return NextResponse.json({

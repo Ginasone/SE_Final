@@ -21,6 +21,7 @@ const verifyAdminToken = async (request: NextRequest) => {
         return decoded;
     }
     catch (error) {
+        console.error("Error in operation:", error);
         return null;
     }
 };
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest){
 
         await connection.end();
 
-        // @ts-expect-error
+        // @ts-expect-error - MySQL insert result doesn't have proper TypeScript types but insertId exists
         const insertId = result.insertId;
 
         return NextResponse.json({
