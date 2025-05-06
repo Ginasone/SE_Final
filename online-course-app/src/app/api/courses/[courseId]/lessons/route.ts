@@ -35,8 +35,9 @@ const getConnection = async () => {
 // GET lessons for a course
 export async function GET(
     request: NextRequest,
-    { params }: { params: { courseId: string } }
+    { params }: { params: Promise< { courseId: string } > }
 ) {
+    const { courseId } = await params;
     // Validate user authentication
     const user = await verifyToken(request);
     if (!user) {
@@ -47,7 +48,6 @@ export async function GET(
     }
 
     // Validate courseId parameter
-    const courseId = params.courseId;
     if (!courseId || isNaN(Number(courseId))) {
         console.log("Invalid courseId:", courseId);
         return NextResponse.json(
@@ -97,8 +97,9 @@ export async function GET(
 // POST a new lesson
 export async function POST(
     request: NextRequest,
-    { params }: { params: { courseId: string } }
+    { params }: { params: Promise< { courseId: string } > }
 ) {
+    const { courseId } = await params;
     // Validate user authentication
     const user = await verifyToken(request);
     if (!user) {
@@ -117,7 +118,6 @@ export async function POST(
     }
 
     // Validate courseId parameter
-    const courseId = params.courseId;
     if (!courseId || isNaN(Number(courseId))) {
         console.log("Invalid courseId:", courseId);
         return NextResponse.json(

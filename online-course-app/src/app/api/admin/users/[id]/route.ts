@@ -36,7 +36,8 @@ const getConnection = async () => {
     });
 };
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }){
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }){
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     try {
-        const userId = params.id;
+        const userId = id;
 
         const connection = await getConnection();
 
@@ -95,7 +96,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }){
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }){
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -105,7 +107,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     try {
-        const userId = params.id;
+        const userId = id;
 
         const { full_name, email, password, role, school_id, status } = await request.json();
 

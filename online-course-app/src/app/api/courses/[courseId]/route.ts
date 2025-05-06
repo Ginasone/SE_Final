@@ -69,12 +69,12 @@ const getConnection = async () => {
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { courseId: string } }
+    { params }: { params: Promise< { courseId: string } > }
 ) {
-    console.log("API request received for course:", params.courseId);
+    const { courseId } = await params;
+    console.log("API request received for course:", courseId);
     
     // Step 1: Get the course ID from the URL parameters
-    const courseId = params.courseId;
     if (!courseId) {
         console.log("Missing course ID");
         return NextResponse.json(

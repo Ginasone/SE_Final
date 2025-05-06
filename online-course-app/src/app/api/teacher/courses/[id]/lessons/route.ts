@@ -76,11 +76,12 @@ const getConnection = async () => {
 // GET: Fetch all lessons for a course
 export async function GET(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     // Fixed: Access params via context
     const { params } = context;
-    const courseId = params.id;
+    const { id } = await params;
+    const courseId = id;
     
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
@@ -154,11 +155,12 @@ export async function GET(
 // POST: Create a new lesson
 export async function POST(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     // Fixed: Access params via context
     const { params } = context;
-    const courseId = params.id;
+    const { id } = await params;
+    const courseId = id;
     
     const teacher = await verifyTeacherToken(request);
     if (!teacher){

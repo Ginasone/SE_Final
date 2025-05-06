@@ -35,7 +35,8 @@ const getConnection = async () => {
     });
 };
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }){
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }){
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     try {
-        const schoolId = params.id;
+        const schoolId = id;
 
         const connection = await getConnection();
 
@@ -86,7 +87,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }){
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }){
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -96,7 +98,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 
     try {
-        const schoolId = params.id;
+        const schoolId = id;
 
         const { name, location, contact_email, contact_phone, access_code, status } = await request.json();
 
@@ -186,7 +188,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }){
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }){
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -196,7 +199,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     try {
-        const schoolId = params.id;
+        const schoolId = id;
 
         const connection = await getConnection();
 

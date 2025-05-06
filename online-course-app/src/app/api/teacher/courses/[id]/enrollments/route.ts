@@ -71,11 +71,12 @@ const getConnection = async () => {
 
 export async function GET(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     // Fixed: Access params via context
     const { params } = context;
-    const courseId = params.id;
+    const { id } = await params;
+    const courseId = id;
     
     const teacher = await verifyTeacherToken(request);
     if (!teacher){

@@ -65,11 +65,12 @@ const getConnection = async () => {
 // PUT: Update a lesson
 export async function PUT(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     // Fixed: Access params via context
     const { params } = context;
-    const lessonId = params.id;
+    const { id } = await params;
+    const lessonId = id;
     
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
@@ -169,11 +170,12 @@ export async function PUT(
 // DELETE: Delete a lesson
 export async function DELETE(
     request: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     // Fixed: Access params via context
     const { params } = context;
-    const lessonId = params.id;
+    const { id } = await params;
+    const lessonId = id;
     
     const teacher = await verifyTeacherToken(request);
     if (!teacher){
