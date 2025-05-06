@@ -4,10 +4,7 @@ import jwt from "jsonwebtoken";
 import { RowDataPacket } from "mysql2";
 
 // Define interfaces for type safety
-interface NavigationResult {
-  prevLessonId: number | null;
-  nextLessonId: number | null;
-}
+
 
 interface LessonPosition extends RowDataPacket {
   position: number;
