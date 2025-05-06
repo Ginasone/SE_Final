@@ -207,7 +207,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }){
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }){
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -217,7 +218,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     }
 
     try {
-        const userId = params.id;
+        const userId = id;
 
         const connection = await getConnection();
 
