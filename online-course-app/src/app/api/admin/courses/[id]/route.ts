@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 import { RowDataPacket } from "mysql2";
@@ -26,10 +26,16 @@ interface JwtAdmin {
   name: string;
 }
 
+interface CountQueryResult extends RowDataPacket {
+  count: number;
+}
+
 // Verify admin token
-const verifyAdminToken = async (request: NextRequest) => {
-    const token = request.cookies.get('token')?.value ||
-                  request.headers.get('authorization')?.split(' ')[1];
+const verifyAdminToken = async (request: Request) => {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') 
+                ? authHeader.substring(7) 
+                : null;
 
     if (!token) {
         return null;
@@ -63,7 +69,7 @@ const getConnection = async () => {
 
 // GET handler - fetch a specific course
 export async function GET(
-  request: NextRequest,
+  request: Request,
   context: { params: { id: string } }
 ) {
   const admin = await verifyAdminToken(request);
@@ -116,7 +122,7 @@ export async function GET(
 
 // PUT handler - update a course
 export async function PUT(
-  request: NextRequest,
+  request: Request,
   context: { params: { id: string } }
 ) {
   const admin = await verifyAdminToken(request);
@@ -281,7 +287,7 @@ export async function PUT(
 
 // DELETE handler - delete a course
 export async function DELETE(
-  request: NextRequest,
+  request: Request,
   context: { params: { id: string } }
 ) {
   const admin = await verifyAdminToken(request);
@@ -314,10 +320,6 @@ export async function DELETE(
       "SELECT COUNT(*) as count FROM enrollments WHERE course_id = ?",
       [courseId]
     );
-
-    interface CountQueryResult extends RowDataPacket {
-      count: number;
-    }
 
     if (enrollments[0].count > 0){
       await connection.end();
