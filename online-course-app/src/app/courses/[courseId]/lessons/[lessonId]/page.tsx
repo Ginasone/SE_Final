@@ -23,11 +23,14 @@ interface LessonNavigation {
   nextLessonId: number | null;
 }
 
-const LessonPage = ({ 
-  params 
-}: { 
-  params: { courseId: string; lessonId: string } 
-}) => {
+interface PageProps {
+  params: {
+    courseId: string;
+    lessonId: string;
+  };
+}
+
+const LessonPage = ({ params }: PageProps) => {
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [lesson, setLesson] = useState<Lesson | null>(null);
