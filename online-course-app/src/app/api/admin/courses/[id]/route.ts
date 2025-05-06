@@ -70,7 +70,7 @@ const getConnection = async () => {
 // GET handler - fetch a specific course
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   const admin = await verifyAdminToken(request);
   if (!admin){
@@ -81,7 +81,7 @@ export async function GET(
   }
 
   try {
-    const courseId = context.params.id;
+    const courseId = params.id;
 
     const connection = await getConnection();
 
@@ -123,7 +123,7 @@ export async function GET(
 // PUT handler - update a course
 export async function PUT(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   const admin = await verifyAdminToken(request);
   if (!admin){
@@ -134,7 +134,7 @@ export async function PUT(
   }
 
   try {
-    const courseId = context.params.id;
+    const courseId = params.id;
 
     const body = await request.json();
     const { title, description, school_id, teacher_id, start_date, end_date, status } = body;
@@ -288,7 +288,7 @@ export async function PUT(
 // DELETE handler - delete a course
 export async function DELETE(
   request: Request,
-  context: { params: { id: string } }
+  { params }: { params: { id: string } }
 ) {
   const admin = await verifyAdminToken(request);
   if (!admin){
@@ -299,7 +299,7 @@ export async function DELETE(
   }
 
   try {
-    const courseId = context.params.id;
+    const courseId = params.id;
 
     const connection = await getConnection();
 
