@@ -1,23 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
-import { RowDataPacket } from "mysql2";
+import { RowDataPacket, ResultSetHeader } from "mysql2";
 
+// Define interface for course rows
 interface CourseRow extends RowDataPacket {
-    id: number;
-    title: string;
-    description: string;
-    school_id: number | null;
-    school_name?: string;
-    teacher_id: number | null;
-    teacher_name?: string;
-    start_date: string;
-    end_date: string;
-    status: 'draft' | 'published' | 'archived';
-    student_count?: number;
-    created_at: string;
-  }
+  id: number;
+  title: string;
+  description: string;
+  school_id: number | null;
+  school_name?: string;
+  teacher_id: number | null;
+  teacher_name?: string;
+  start_date: string;
+  end_date: string;
+  status: 'draft' | 'published' | 'archived';
+  student_count?: number;
+  created_at: string;
+}
 
+interface JwtAdmin {
+  userId: number;
+  role: string;
+  email: string;
+  name: string;
+}
+
+// Verify admin token
 const verifyAdminToken = async (request: NextRequest) => {
     const token = request.cookies.get('token')?.value ||
                   request.headers.get('authorization')?.split(' ')[1];
@@ -28,7 +37,7 @@ const verifyAdminToken = async (request: NextRequest) => {
 
     try {
         const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-        const decoded = jwt.verify(token, secretKey) as jwt.JwtPayload;
+        const decoded = jwt.verify(token, secretKey) as JwtAdmin;
 
         if (decoded.role !== 'admin'){
             return null;
@@ -42,6 +51,7 @@ const verifyAdminToken = async (request: NextRequest) => {
     }
 };
 
+// Database connection helper
 const getConnection = async () => {
     return await mysql.createConnection({
         host: process.env.DB_HOST || 'localhost',
@@ -51,281 +61,288 @@ const getConnection = async () => {
     });
 };
 
+// GET handler - fetch a specific course
 export async function GET(
-    request: NextRequest,
-    { params }: { params: { id: string } }  // Correct typing for the params object
-  ){
-    const admin = await verifyAdminToken(request);
-    if (!admin){
-      return NextResponse.json(
-        { message: "Unauthorized access"},
-        { status: 401 }
-      );
-    }
-  
-    try {
-      const courseId = params.id;
-  
-      const connection = await getConnection();
-  
-      const [rows] = await connection.execute<CourseRow[]>(
-        `SELECT c.*,
-            s.name as school_name,
-            u.full_name as teacher_name,
-            (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
-        FROM courses c
-        LEFT JOIN schools s ON c.school_id = s.id
-        LEFT JOIN users u ON c.teacher_id = u.id
-        WHERE c.id = ?
-        `, [courseId]);
-  
-      await connection.end();
-  
-      if (!Array.isArray(rows) || rows.length === 0){
-        await connection.end();
-        return NextResponse.json(
-          { message: "Course not found"},
-          { status: 404}
-        );
-      }
-  
-      const course = rows[0];
-  
-      return NextResponse.json({
-        course
-      });
-    }
-    catch (error) {
-      console.error("Error fetching course:", error);
-      return NextResponse.json(
-        { message: "Failed to fetch course"},
-        { status: 500}
-      );
-    }
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  const admin = await verifyAdminToken(request);
+  if (!admin){
+    return NextResponse.json(
+      { message: "Unauthorized access"},
+      { status: 401 }
+    );
   }
 
-export async function PUT(request: NextRequest,
-    { params }: { params: { id: string } }  // Correct typing
-  ){
-    const admin = await verifyAdminToken(request);
-    if (!admin){
-        return NextResponse.json(
-            { message: "Unauthorized access"},
-            { status: 401 }
-        );
+  try {
+    const courseId = context.params.id;
+
+    const connection = await getConnection();
+
+    const [rows] = await connection.execute<CourseRow[]>(
+      `SELECT c.*,
+          s.name as school_name,
+          u.full_name as teacher_name,
+          (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
+      FROM courses c
+      LEFT JOIN schools s ON c.school_id = s.id
+      LEFT JOIN users u ON c.teacher_id = u.id
+      WHERE c.id = ?
+      `, [courseId]);
+
+    await connection.end();
+
+    if (!Array.isArray(rows) || rows.length === 0){
+      return NextResponse.json(
+        { message: "Course not found"},
+        { status: 404}
+      );
     }
 
-    try {
-        const courseId = params.id;
+    const course = rows[0];
 
-        const { title, description, school_id, teacher_id, start_date, end_date, status } = await request.json();
-
-        if (!title){
-            return NextResponse.json(
-                { message:"Missing required fields"},
-                { status: 400}
-            );
-        }
-
-        const validStatuses = ['draft', 'published', 'archived'];
-        if (status && !validStatuses.includes(status)) {
-            return NextResponse.json(
-                { message: "Invalid status value"},
-                { status: 400}
-            );
-        }
-
-        if (status === 'published' && !school_id) {
-            return NextResponse.json(
-                { message: "School must be selected for published courses"},
-                { status: 400}
-            );
-        }
-
-        if (start_date && end_date){
-            const startDateObj = new Date(start_date);
-            const endDateObj = new Date(end_date);
-
-            if (endDateObj < startDateObj){
-                return NextResponse.json(
-                    { message: "End date cannot be before start date"},
-                    { status: 400}
-                );
-            }
-        }
-
-        const connection = await getConnection();
-
-        const [existingCourses] = await connection.execute(
-            "SELECT * FROM courses WHERE id = ?",
-            [courseId]
-        );
-
-        if (!Array.isArray(existingCourses) || existingCourses.length === 0){
-            await connection.end();
-            return NextResponse.json(
-                { message: "Course not found"},
-                { status: 404}
-            );
-        }
-
-        if (school_id){
-            const [schoolCheck] = await connection.execute(
-                "SELECT * FROM schools WHERE id = ?",
-                [school_id]
-            );
-    
-            if (!Array.isArray(schoolCheck) || schoolCheck.length === 0){
-                await connection.end();
-                return NextResponse.json(
-                    { message: "School does not exist"},
-                    { status: 409}
-                );
-            }
-        }
-
-        if (teacher_id){
-            const [teacherCheck] = await connection.execute(
-                "SELECT * FROM users WHERE id = ? AND role = 'teacher'",
-                [teacher_id]
-            );
-    
-            if (!Array.isArray(teacherCheck) || teacherCheck.length === 0){
-                await connection.end();
-                return NextResponse.json(
-                    { message: "Teacher does not exist"},
-                    { status: 409}
-                );
-            }
-        }
-
-        if (school_id){
-            const [teacherSchoolCheck] = await connection.execute(
-                "SELECT * FROM users WHERE id = ? AND school_id = ?",
-                [teacher_id, school_id]
-            );
-    
-            if (!Array.isArray(teacherSchoolCheck) || teacherSchoolCheck.length === 0){
-                await connection.end();
-                return NextResponse.json(
-                    { message: "Teacher does not exist in the school"},
-                    { status: 409}
-                );
-            }
-        }
-
-        await connection.execute(
-            `UPDATE courses SET
-            title = ?,
-            description = ?,
-            school_id = ?,
-            teacher_id = ?,
-            start_date = ?,
-            end_date = ?,
-            status = ?,
-            updated_at = NOW()
-            WHERE id = ?`,
-            [
-                title,
-                description || null,
-                school_id || null,
-                teacher_id || null,
-                start_date || null,
-                end_date || null,
-                status || 'draft',
-                courseId
-            ]
-        );
-
-        const [updatedCourseRows] = await connection.execute(`
-            SELECT c.*,
-                s.name as school_name,
-                u.full_name as teacher_name,
-                (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
-            FROM courses c
-            LEFT JOIN schools s ON c.school_id = s.id
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.id = ?
-            `, [courseId]);
-
-        await connection.end();
-
-        //@ts-expect-error - Type definition for query result is not exact but we know the structure
-        const updatedCourse = updatedCourseRows[0];
-
-        return NextResponse.json({
-            message: "Course updated successfully",
-            user: updatedCourse
-        });
-    }
-    catch (error) {
-        console.error("Error updating course:", error);
-        return NextResponse.json(
-            { message: "Failed to update course"},
-            { status: 500}
-        );
-    }
+    return NextResponse.json({
+      course
+    });
+  }
+  catch (error) {
+    console.error("Error fetching course:", error);
+    return NextResponse.json(
+      { message: "Failed to fetch course"},
+      { status: 500}
+    );
+  }
 }
 
-export async function DELETE(request: NextRequest,
-    { params }: { params: { id: string } }  // Correct typing
-  ){
-    const admin = await verifyAdminToken(request);
-    if (!admin){
-        return NextResponse.json(
-            { message: "Unauthorized access"},
-            { status: 401 }
-        );
+// PUT handler - update a course
+export async function PUT(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  const admin = await verifyAdminToken(request);
+  if (!admin){
+    return NextResponse.json(
+      { message: "Unauthorized access"},
+      { status: 401 }
+    );
+  }
+
+  try {
+    const courseId = context.params.id;
+
+    const body = await request.json();
+    const { title, description, school_id, teacher_id, start_date, end_date, status } = body;
+
+    if (!title){
+      return NextResponse.json(
+        { message: "Missing required fields"},
+        { status: 400}
+      );
     }
 
-    try {
-        const courseId = params.id;
+    const validStatuses = ['draft', 'published', 'archived'];
+    if (status && !validStatuses.includes(status)) {
+      return NextResponse.json(
+        { message: "Invalid status value"},
+        { status: 400}
+      );
+    }
 
-        const connection = await getConnection();
+    if (status === 'published' && !school_id) {
+      return NextResponse.json(
+        { message: "School must be selected for published courses"},
+        { status: 400}
+      );
+    }
 
-        const [existingCourses] = await connection.execute(
-            "SELECT * FROM courses WHERE id = ?",
-            [courseId]
+    if (start_date && end_date){
+      const startDateObj = new Date(start_date);
+      const endDateObj = new Date(end_date);
+
+      if (endDateObj < startDateObj){
+        return NextResponse.json(
+          { message: "End date cannot be before start date"},
+          { status: 400}
         );
+      }
+    }
 
-        if (!Array.isArray(existingCourses) || existingCourses.length === 0){
-            await connection.end();
-            return NextResponse.json(
-                { message: "Course not found"},
-                { status: 404}
-            );
-        }
+    const connection = await getConnection();
 
-        const [enrollments] = await connection.execute(
-            "SELECT COUNT(*) as count FROM course_enrollments WHERE course_id = ?",
-            [courseId]
-        );
+    const [existingCourses] = await connection.execute<CourseRow[]>(
+      "SELECT * FROM courses WHERE id = ?",
+      [courseId]
+    );
 
-        // @ts-expect-error - MySQL result type is not properly typed but we know count exists
-        if (enrollments[0].count > 0){
-            await connection.end();
-            return NextResponse.json(
-                { message: "Students have already enrolled into the course. Archive instead"},
-                { status: 409}
-            );
-        }
+    if (!Array.isArray(existingCourses) || existingCourses.length === 0){
+      await connection.end();
+      return NextResponse.json(
+        { message: "Course not found"},
+        { status: 404}
+      );
+    }
 
-        await connection.execute(
-            "DELETE FROM courses WHERE id = ?",
-            [courseId]
-        );
+    if (school_id){
+      const [schoolCheck] = await connection.execute<RowDataPacket[]>(
+        "SELECT * FROM schools WHERE id = ?",
+        [school_id]
+      );
 
+      if (!Array.isArray(schoolCheck) || schoolCheck.length === 0){
         await connection.end();
-
-        return NextResponse.json({
-            message: "Course deleted successfully",
-        });
-    }
-    catch (error) {
-        console.error("Error deleting course:", error);
         return NextResponse.json(
-            { message: "Failed to delete course"},
-            { status: 500}
+          { message: "School does not exist"},
+          { status: 409}
         );
+      }
     }
+
+    if (teacher_id){
+      const [teacherCheck] = await connection.execute<RowDataPacket[]>(
+        "SELECT * FROM users WHERE id = ? AND role = 'teacher'",
+        [teacher_id]
+      );
+
+      if (!Array.isArray(teacherCheck) || teacherCheck.length === 0){
+        await connection.end();
+        return NextResponse.json(
+          { message: "Teacher does not exist"},
+          { status: 409}
+        );
+      }
+    }
+
+    if (school_id && teacher_id){
+      const [teacherSchoolCheck] = await connection.execute<RowDataPacket[]>(
+        "SELECT * FROM users WHERE id = ? AND school_id = ?",
+        [teacher_id, school_id]
+      );
+
+      if (!Array.isArray(teacherSchoolCheck) || teacherSchoolCheck.length === 0){
+        await connection.end();
+        return NextResponse.json(
+          { message: "Teacher does not exist in the school"},
+          { status: 409}
+        );
+      }
+    }
+
+    await connection.execute(
+      `UPDATE courses SET
+      title = ?,
+      description = ?,
+      school_id = ?,
+      teacher_id = ?,
+      start_date = ?,
+      end_date = ?,
+      status = ?,
+      updated_at = NOW()
+      WHERE id = ?`,
+      [
+        title,
+        description || null,
+        school_id || null,
+        teacher_id || null,
+        start_date || null,
+        end_date || null,
+        status || 'draft',
+        courseId
+      ]
+    );
+
+    const [updatedCourseRows] = await connection.execute<CourseRow[]>(`
+      SELECT c.*,
+          s.name as school_name,
+          u.full_name as teacher_name,
+          (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
+      FROM courses c
+      LEFT JOIN schools s ON c.school_id = s.id
+      LEFT JOIN users u ON c.teacher_id = u.id
+      WHERE c.id = ?
+      `, [courseId]);
+
+    await connection.end();
+
+    const updatedCourse = updatedCourseRows[0];
+
+    return NextResponse.json({
+      message: "Course updated successfully",
+      course: updatedCourse
+    });
+  }
+  catch (error) {
+    console.error("Error updating course:", error);
+    return NextResponse.json(
+      { message: "Failed to update course"},
+      { status: 500}
+    );
+  }
+}
+
+// DELETE handler - delete a course
+export async function DELETE(
+  request: NextRequest,
+  context: { params: { id: string } }
+) {
+  const admin = await verifyAdminToken(request);
+  if (!admin){
+    return NextResponse.json(
+      { message: "Unauthorized access"},
+      { status: 401 }
+    );
+  }
+
+  try {
+    const courseId = context.params.id;
+
+    const connection = await getConnection();
+
+    const [existingCourses] = await connection.execute<CourseRow[]>(
+      "SELECT * FROM courses WHERE id = ?",
+      [courseId]
+    );
+
+    if (!Array.isArray(existingCourses) || existingCourses.length === 0){
+      await connection.end();
+      return NextResponse.json(
+        { message: "Course not found"},
+        { status: 404}
+      );
+    }
+
+    const [enrollments] = await connection.execute<CountQueryResult[]>(
+      "SELECT COUNT(*) as count FROM enrollments WHERE course_id = ?",
+      [courseId]
+    );
+
+    interface CountQueryResult extends RowDataPacket {
+      count: number;
+    }
+
+    if (enrollments[0].count > 0){
+      await connection.end();
+      return NextResponse.json(
+        { message: "Students have already enrolled into the course. Archive instead"},
+        { status: 409}
+      );
+    }
+
+    await connection.execute(
+      "DELETE FROM courses WHERE id = ?",
+      [courseId]
+    );
+
+    await connection.end();
+
+    return NextResponse.json({
+      message: "Course deleted successfully",
+    });
+  }
+  catch (error) {
+    console.error("Error deleting course:", error);
+    return NextResponse.json(
+      { message: "Failed to delete course"},
+      { status: 500}
+    );
+  }
 }
