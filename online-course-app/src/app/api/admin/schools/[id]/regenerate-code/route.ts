@@ -1,10 +1,13 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
 
-const verifyAdminToken = async (request: NextRequest) => {
-    const token = request.cookies.get('token')?.value ||
-                  request.headers.get('authorization')?.split(' ')[1];
+// Verify admin token
+const verifyAdminToken = async (request: Request) => {
+    const authHeader = request.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') 
+                ? authHeader.substring(7) 
+                : null;
 
     if (!token) {
         return null;
@@ -12,7 +15,7 @@ const verifyAdminToken = async (request: NextRequest) => {
 
     try {
         const secretKey = process.env.JWT_SECRET || '7f749666e7cba2f784b5bfe1c57f313557ce3ff3c74ed9637c56eeccef7e8af6de9cd800b2058fafc933bc1601b9c20249ed83e9783db020e20acf86a66badcd';
-        const decoded = jwt.verify(token, secretKey) as { role: string};
+        const decoded = jwt.verify(token, secretKey) as { role: string };
 
         if (decoded.role !== 'admin'){
             return null;
@@ -35,7 +38,11 @@ const getConnection = async () => {
     });
 };
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }){
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+    const { id } = await params;
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -45,13 +52,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
 
     try {
-        const schoolId = params.id;
-
-        const { access_code } = await request.json();
+        const schoolId = id;
+        const body = await request.json();
+        const { access_code } = body;
 
         if (!access_code || access_code.length < 6){
             return NextResponse.json(
-                { message:"Access code must be at least 6 characters" },
+                { message: "Access code must be at least 6 characters" },
                 { status: 400}
             );
         }
@@ -63,7 +70,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
             [schoolId]
         );
 
-        if (Array.isArray(existingSchools) && existingSchools.length === 0){
+        if (!Array.isArray(existingSchools) || existingSchools.length === 0){
             await connection.end();
             return NextResponse.json(
                 { message: "School not found"},
