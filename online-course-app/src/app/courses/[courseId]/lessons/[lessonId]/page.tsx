@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { FaArrowLeft, FaArrowRight, FaCheck, FaHome } from "react-icons/fa";
 
 interface Lesson {
@@ -23,14 +24,11 @@ interface LessonNavigation {
   nextLessonId: number | null;
 }
 
-interface PageProps {
-  params: {
-    courseId: string;
-    lessonId: string;
-  };
-}
-
-const LessonPage = ({ params }: PageProps) => {
+const LessonPage = () => {
+  const params = useParams();
+  const courseId = params.courseId as string;
+  const lessonId = params.lessonId as string;
+  
   const router = useRouter();
   const [course, setCourse] = useState<Course | null>(null);
   const [lesson, setLesson] = useState<Lesson | null>(null);
@@ -45,7 +43,6 @@ const LessonPage = ({ params }: PageProps) => {
   useEffect(() => {
     const fetchLessonData = async () => {
       try {
-        const { courseId, lessonId } = params;
         if (!courseId || !lessonId) {
           router.replace('/student-dashboard');
           return;
@@ -119,7 +116,7 @@ const LessonPage = ({ params }: PageProps) => {
     };
 
     fetchLessonData();
-  }, [params, router]);
+  }, [courseId, lessonId, router]);
 
   const markAsCompleted = async () => {
     if (!lesson || lesson.completed || isCompleting) return;
@@ -128,7 +125,7 @@ const LessonPage = ({ params }: PageProps) => {
       setIsCompleting(true);
       const token = localStorage.getItem('user-token');
       
-      const response = await fetch(`/api/courses/${params.courseId}/lessons/${params.lessonId}/complete`, {
+      const response = await fetch(`/api/courses/${courseId}/lessons/${lessonId}/complete`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -148,7 +145,7 @@ const LessonPage = ({ params }: PageProps) => {
       // If there's a next lesson, navigate to it after a short delay
       if (navigation.nextLessonId) {
         setTimeout(() => {
-          router.push(`/courses/${params.courseId}/lessons/${navigation.nextLessonId}`);
+          router.push(`/courses/${courseId}/lessons/${navigation.nextLessonId}`);
         }, 1000);
       }
     } catch (err) {
@@ -160,18 +157,18 @@ const LessonPage = ({ params }: PageProps) => {
   };
 
   const goToCourse = () => {
-    router.push(`/courses/${params.courseId}`);
+    router.push(`/courses/${courseId}`);
   };
 
   const goToPreviousLesson = () => {
     if (navigation.prevLessonId) {
-      router.push(`/courses/${params.courseId}/lessons/${navigation.prevLessonId}`);
+      router.push(`/courses/${courseId}/lessons/${navigation.prevLessonId}`);
     }
   };
 
   const goToNextLesson = () => {
     if (navigation.nextLessonId) {
-      router.push(`/courses/${params.courseId}/lessons/${navigation.nextLessonId}`);
+      router.push(`/courses/${courseId}/lessons/${navigation.nextLessonId}`);
     }
   };
 
