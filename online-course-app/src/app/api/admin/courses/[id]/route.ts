@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
+import { RowDataPacket } from "mysql2";
+
+interface CourseRow extends RowDataPacket {
+    id: number;
+    title: string;
+    description: string;
+    school_id: number | null;
+    school_name?: string;
+    teacher_id: number | null;
+    teacher_name?: string;
+    start_date: string;
+    end_date: string;
+    status: 'draft' | 'published' | 'archived';
+    student_count?: number;
+    created_at: string;
+  }
 
 const verifyAdminToken = async (request: NextRequest) => {
     const token = request.cookies.get('token')?.value ||
@@ -35,71 +51,62 @@ const getConnection = async () => {
     });
 };
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }){
+export async function GET(
+    request: NextRequest,
+    { params }: { params: { id: string } }  // Correct typing for the params object
+  ){
     const admin = await verifyAdminToken(request);
     if (!admin){
-        return NextResponse.json(
-            { message: "Unauthorized access"},
-            { status: 401 }
-        );
+      return NextResponse.json(
+        { message: "Unauthorized access"},
+        { status: 401 }
+      );
     }
-
+  
     try {
-        const courseId = params.id;
-
-        const connection = await getConnection();
-
-        const [rows] = await connection.execute(
-            `SELECT c.*,
-                s.name as school_name,
-                u.full_name as teacher_name,
-                (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
-            FROM courses c
-            LEFT JOIN schools s ON c.school_id = s.id
-            LEFT JOIN users u ON c.teacher_id = u.id
-            WHERE c.id = ?
-            `, [courseId]);
-
+      const courseId = params.id;
+  
+      const connection = await getConnection();
+  
+      const [rows] = await connection.execute<CourseRow[]>(
+        `SELECT c.*,
+            s.name as school_name,
+            u.full_name as teacher_name,
+            (SELECT COUNT(*) FROM enrollments ce WHERE ce.course_id = c.id) as student_count
+        FROM courses c
+        LEFT JOIN schools s ON c.school_id = s.id
+        LEFT JOIN users u ON c.teacher_id = u.id
+        WHERE c.id = ?
+        `, [courseId]);
+  
+      await connection.end();
+  
+      if (!Array.isArray(rows) || rows.length === 0){
         await connection.end();
-
-        if (!Array.isArray(rows) || rows.length === 0){
-            await connection.end();
-            return NextResponse.json(
-                { message: "Course not found"},
-                { status: 404}
-            );
-        }
-
-        interface CourseRow {
-            id: number;
-            title: string;
-            description: string;
-            school_id: number | null;
-            school_name?: string;
-            teacher_id: number | null;
-            teacher_name?: string;
-            start_date:string;
-            end_date: string;
-            status: 'draft' | 'published' | 'archived';
-            student_count?: number;
-            created_at: string;
-          }
-        const course = rows[0] as CourseRow;
-
-        return NextResponse.json({
-            course
-        });
+        return NextResponse.json(
+          { message: "Course not found"},
+          { status: 404}
+        );
+      }
+  
+      const course = rows[0];
+  
+      return NextResponse.json({
+        course
+      });
     }
     catch (error) {
-        console.error("Error fetching course:", error);
-        return NextResponse.json(
-            { message: "Failed to fetch course"},
-            { status: 500}
-        );
+      console.error("Error fetching course:", error);
+      return NextResponse.json(
+        { message: "Failed to fetch course"},
+        { status: 500}
+      );
     }
-}
+  }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }){
+export async function PUT(request: NextRequest,
+    { params }: { params: { id: string } }  // Correct typing
+  ){
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
@@ -260,7 +267,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }){
+export async function DELETE(request: NextRequest,
+    { params }: { params: { id: string } }  // Correct typing
+  ){
     const admin = await verifyAdminToken(request);
     if (!admin){
         return NextResponse.json(
