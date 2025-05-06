@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import mysql from "mysql2/promise";
 import jwt from "jsonwebtoken";
-import { RowDataPacket, ResultSetHeader } from "mysql2";
+import { RowDataPacket } from "mysql2";
 
 // Define interface for course rows
 interface CourseRow extends RowDataPacket {
