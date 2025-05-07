@@ -161,3 +161,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - Ghana Education Service (GES) for curriculum alignment
 - All contributing developers and educational institutions
+
+## Deployed Link
+https://se-final-wheat.vercel.app/
